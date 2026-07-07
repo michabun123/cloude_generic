@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "generic-agent-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:\\claude\\generic\\server.js"],
+      "port": 5178
+    }
+  ]
+}

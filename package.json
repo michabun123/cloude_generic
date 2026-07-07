@@ -1,0 +1,14 @@
+{
+  "name": "generic-agent-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local web UI that hosts the generator widgets and drives a Claude Agent (file + bash tools) to actually build the scaffolded project.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "express": "^5.2.1"
+  }
+}

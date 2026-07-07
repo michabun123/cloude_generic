@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testSmall;DB_CLOSE_DELAY=-1;MODE=LEGACY
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  flyway:
+    enabled: false
+  # Tests connect to the local MongoDB server (no in-memory equivalent) using the
+  # dedicated service user, but write to an isolated test database.
+  data:
+    mongodb:
+      uri: mongodb://smallT:smallT@localhost:27017/smallTestTest?authSource=admin
+      database: smallTestTest
+
+logging:
+  level:
+    com.interview.prep: WARN

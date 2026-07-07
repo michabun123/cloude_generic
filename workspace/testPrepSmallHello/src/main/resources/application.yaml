@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: testPrepSmallHello
+
+  # ---- Default (out-of-the-box) SQL store: in-memory H2 ----
+  datasource:
+    url: jdbc:h2:mem:testSmall;DB_CLOSE_DELAY=-1;MODE=LEGACY
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # H2 in-memory: let Hibernate create the schema
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # Flyway is disabled by default (H2) and enabled only under the postgres profile.
+  flyway:
+    enabled: false
+
+  # ---- MongoDB: connected in ALL profiles (no in-memory equivalent) ----
+  data:
+    mongodb:
+      uri: mongodb://smallT:smallT@localhost:27017/smallTest?authSource=admin
+      database: smallTest
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.interview.prep: INFO
+    org.springframework.web.servlet.resource.NoResourceFoundException: OFF

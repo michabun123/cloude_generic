@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generic — Agent Builder</title>
+<link rel="stylesheet" href="/icons.css">
+<style>
+  :root{
+    --bg:#faf9f5; --panel:#ffffff; --line:#e7e5df; --ink:#1a1a18; --muted:#5f5e5a;
+    --accent:#185fa5; --accent-bg:#e6f1fb; --ok:#0f6e56; --warn:#854f0b; --warn-bg:#faeeda; --err:#a32d2d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg)}
+  header{display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:0.5px solid var(--line);background:var(--panel);box-shadow:0 1px 2px rgba(16,24,40,.03)}
+  header .dot{width:32px;height:32px;border-radius:9px;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:18px}
+  header h1{font-size:15px;font-weight:500;margin:0}
+  header .sub{font-size:12px;color:var(--muted)}
+  header .pick{margin-left:auto;display:flex;gap:8px;align-items:center}
+  header select{font:inherit;padding:6px 10px;border:0.5px solid var(--line);border-radius:8px;background:#fff;transition:border-color .12s}
+  header select:hover{border-color:var(--accent)}
+  .btn{font:inherit;display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;border:0.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s,color .12s;font-weight:500}
+  .btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+  .btn[hidden]{display:none}
+  .wrap{display:grid;grid-template-columns:minmax(420px,1fr) minmax(360px,1fr);gap:0;height:calc(100vh - 56px)}
+  .left{border-right:0.5px solid var(--line);overflow:auto;background:var(--panel)}
+  .left iframe{width:100%;height:100%;border:0;display:block}
+  .right{display:flex;flex-direction:column;min-width:0}
+  .rhead{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:0.5px solid var(--line);background:var(--panel)}
+  .rhead b{font-size:13px;font-weight:500}
+  .rhead .meta{font-size:11px;color:var(--muted);margin-left:auto;font-family:ui-monospace,monospace}
+  .status{font-size:11px;padding:2px 9px;border-radius:99px;background:var(--line);color:var(--muted)}
+  .status.run{background:var(--accent-bg);color:var(--accent)}
+  .status.ok{background:#e1f5ee;color:var(--ok)}
+  .status.err{background:#fceceb;color:var(--err)}
+  #log{flex:1;overflow:auto;padding:12px 14px;font-family:ui-monospace,SFMono-Regular,monospace;font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+  .ev{margin:0 0 2px}
+  .ev.tool{color:var(--accent)}
+  .ev.res{color:var(--muted)}
+  .ev.err{color:var(--err)}
+  .empty{color:var(--muted);font-family:system-ui,sans-serif;font-size:13px;padding:8px 0}
+  .card{font-family:system-ui,sans-serif;border:0.5px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 16px}
+  .ctitle{font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;margin:0 0 12px}
+  .tag{font-size:10px;font-weight:500;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:99px}
+  .csec{margin:0 0 12px}
+  .clab{font-size:11px;font-weight:500;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+  .clist{margin:0;padding-left:0;list-style:none;font-family:ui-monospace,monospace;font-size:12px;line-height:1.7;color:var(--ink)}
+  .clist li{padding:1px 0}
+  .card a{color:var(--accent);text-decoration:none;font-family:ui-monospace,monospace;font-size:12px}
+  .card a:hover{text-decoration:underline}
+  .cnote{font-size:11px;color:var(--muted);border-top:0.5px solid var(--line);padding-top:9px;margin-top:2px}
+  .qtiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 14px}
+  .qtile{background:var(--bg);border-radius:9px;padding:9px 10px;text-align:center}
+  .qtile.ok{background:#e1f5ee}.qtile.bad{background:#fceceb}
+  .qv{font-size:20px;font-weight:500;font-family:system-ui,sans-serif}
+  .qtile.ok .qv{color:var(--ok)}.qtile.bad .qv{color:var(--err)}
+  .ql{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+  .qbug{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-top:0.5px solid var(--line)}
+  .qbug:first-child{border-top:0}
+  .qpill{flex:0 0 auto;font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;text-transform:uppercase}
+  .sev-h{background:#fceceb;color:var(--err)} .sev-m{background:var(--warn-bg);color:var(--warn)} .sev-l{background:var(--line);color:var(--muted)}
+  .qbt{font-size:13px;font-family:system-ui,sans-serif;color:var(--ink)}
+  .qfix{font-size:12px;color:var(--muted);margin-top:2px}
+  .qnone{font-size:12px;color:var(--muted);font-family:system-ui,sans-serif}
+</style>
+</head>
+<body>
+<header>
+  <span class="dot"><i class="ti ti-stack-2"></i></span>
+  <div>
+    <h1>Generic — Agent Builder</h1>
+    <div class="sub">generator widget → Claude Agent (file + bash tools) → real build on your machine</div>
+  </div>
+  <div class="pick">
+    <button id="back" class="btn" hidden><i class="ti ti-arrow-left"></i> Team</button>
+    <label class="sub" for="gen">Generator</label>
+    <select id="gen">
+      <option value="engineering-team">Team</option>
+      <option value="java-generator">Java / Spring</option>
+      <option value="python-generator">Python / FastAPI</option>
+      <option value="ui-generator">UI (React / Flutter)</option>
+      <option value="qa-runner">QA runner</option>
+    </select>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="left"><iframe id="widget" src="/widgets/engineering-team" title="generator"></iframe></div>
+  <div class="right">
+    <div class="rhead">
+      <b>Agent</b>
+      <span id="status" class="status">idle</span>
+      <span class="meta" id="meta"></span>
+    </div>
+    <div id="log"><div class="empty">Fill in the form on the left and hit <b>Generate</b>. The build prompt is sent to the agent, which writes the project into the workspace and runs the build here — streaming live below.</div></div>
+  </div>
+</div>
+
+<script>
+  const gen = document.getElementById("gen");
+  const widget = document.getElementById("widget");
+  const back = document.getElementById("back");
+  const log = document.getElementById("log");
+  const statusEl = document.getElementById("status");
+  const metaEl = document.getElementById("meta");
+  let running = false, currentMode = "build", streamText = "";
+
+  function switchGen(value){
+    gen.value = value;
+    widget.src = "/widgets/" + value;
+    back.hidden = (value === "engineering-team");   // show "← Team" only off the roster
+  }
+  gen.onchange = () => switchGen(gen.value);
+  back.onclick = () => switchGen("engineering-team");
+
+  function setStatus(txt, cls){ statusEl.textContent = txt; statusEl.className = "status" + (cls ? " " + cls : ""); }
+  function line(text, cls){
+    const first = log.querySelector(".empty"); if (first) first.remove();
+    const div = document.createElement("div");
+    div.className = "ev" + (cls ? " " + cls : "");
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    return div;
+  }
+  let textNode = null;
+  function appendText(t){
+    const first = log.querySelector(".empty"); if (first) first.remove();
+    if (!textNode){ textNode = document.createElement("div"); textNode.className = "ev"; log.appendChild(textNode); }
+    textNode.textContent += t;
+    streamText += t;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Pull the last fenced qa-report / json block that parses with a `tests` field.
+  function extractQa(text){
+    let m, last = null, re = /```(?:qa-report|json)?\s*([\s\S]*?)```/g;
+    while ((m = re.exec(text))){ try { const o = JSON.parse(m[1].trim()); if (o && o.tests) last = o; } catch (e) {} }
+    return last;
+  }
+  function renderQaCard(d){
+    const t = d.tests || {}, bugs = d.bugs || [], gaps = d.gaps || [];
+    const num = v => (v === undefined || v === null) ? "–" : v;
+    const tile = (lab, val, cls) => '<div class="qtile ' + (cls||"") + '"><div class="qv">' + esc(num(val)) + '</div><div class="ql">' + lab + '</div></div>';
+    const sev = s => ({high:"sev-h",med:"sev-m",medium:"sev-m",low:"sev-l"}[String(s||"").toLowerCase()] || "sev-l");
+    const bugRows = bugs.length ? bugs.map(b =>
+        '<div class="qbug"><span class="qpill ' + sev(b.severity) + '">' + esc(b.severity||"?") + '</span>' +
+        '<div><div class="qbt">' + esc(b.title||"") + '</div>' + (b.fix ? '<div class="qfix">fix: ' + esc(b.fix) + '</div>' : "") + '</div></div>'
+      ).join("") : '<div class="qnone">no bugs reported</div>';
+    const gapRows = gaps.length ? '<ul class="clist">' + gaps.map(g => "<li>" + esc(g) + "</li>").join("") + "</ul>" : '<div class="qnone">none</div>';
+    const passing = (t.failed|0) === 0;
+    setStatus(passing ? "QA passing" : "QA failing", passing ? "ok" : "err");
+    log.innerHTML =
+      '<div class="card">' +
+        '<div class="ctitle"><i class="ti ti-shield-check"></i> QA report <span class="tag">' + (passing ? "passing" : "failing") + '</span></div>' +
+        '<div class="qtiles">' + tile("run", t.run) + tile("passed", t.passed, "ok") + tile("failed", t.failed, (t.failed ? "bad" : "")) + tile("bugs", bugs.length) + '</div>' +
+        '<div class="csec"><div class="clab">Findings</div>' + bugRows + '</div>' +
+        '<div class="csec"><div class="clab">Coverage gaps</div>' + gapRows + '</div>' +
+        (d.summary ? '<div class="cnote">' + esc(d.summary) + '</div>' : "") +
+      '</div>';
+  }
+
+  // Team-card clicks arrive as slash commands (/java-generator …) — treat those as
+  // in-app navigation to that generator instead of firing a build.
+  const SLASH_TO_GEN = {
+    "/java-generator": "java-generator",
+    "/python-generator": "python-generator",
+    "/ui-generator": "ui-generator",
+    "/engineering-team": "engineering-team",
+  };
+  function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+  function renderApiCard(d){
+    if (!d || !d.name) return;
+    const li = a => (a||[]).map(x => "<li>" + esc(x) + "</li>").join("");
+    const link = u => '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + "</a>";
+    setStatus("API surface");
+    log.innerHTML =
+      '<div class="card">' +
+        '<div class="ctitle">API surface — ' + esc(d.name) + ' <span class="tag">' + esc(d.stack) + '</span></div>' +
+        '<div class="csec"><div class="clab">Endpoints</div><ul class="clist">' + li(d.endpoints) + '</ul></div>' +
+        '<div class="csec"><div class="clab">Databases</div><ul class="clist">' + li(d.dbs) + '</ul></div>' +
+        '<div class="csec"><div class="clab">Swagger UI</div>' + link(d.swagger) + '</div>' +
+        '<div class="csec"><div class="clab">Actuator / health</div>' + (d.actuator||[]).map(link).join("<br>") + '</div>' +
+        (d.h2 ? '<div class="csec"><div class="clab">H2 console (dev/test datasource)</div>' + link(d.h2.console) +
+          '<div style="font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);margin-top:4px">' + esc(d.h2.jdbc) + ' · user ' + esc(d.h2.user) + ' / ' + esc(d.h2.password) + ' password</div></div>' : "") +
+        '<div class="cnote">Preview from the form — these URLs go live once the service is built &amp; running. Hit <b>Create &amp; run QA</b> or <b>Generate</b> to build it.</div>' +
+      '</div>';
+  }
+
+  window.addEventListener("message", (e) => {
+    if (!e.data) return;
+    if (e.data.type === "apiSummary") { renderApiCard(e.data.data); return; }
+    if (e.data.type !== "run") return;
+    const prompt = (e.data.prompt || "").trim();
+    const target = SLASH_TO_GEN[prompt.split(/\s/)[0]];
+    if (target) { switchGen(target); return; }
+    if (running) { line("[busy — a build is already running]", "err"); return; }
+    runBuild(prompt, e.data.mode);
+  });
+
+  async function runBuild(prompt, mode){
+    running = true; textNode = null; currentMode = mode || "build"; streamText = "";
+    log.innerHTML = "";
+    line("▶ " + (currentMode === "qa" ? "build + QA" : "build") + " sent to agent\n" + prompt + "\n", "res");
+    setStatus("running", "run");
+    try {
+      const resp = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, mode: currentMode })
+      });
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const parts = buf.split("\n\n");
+        buf = parts.pop();
+        for (const part of parts) handleEvent(part);
+      }
+      if (currentMode === "qa") {
+        const qa = extractQa(streamText);
+        if (qa) { renderQaCard(qa); }
+        else { line("\n✓ QA finished — couldn't parse a qa-report block (see log above)", "err"); setStatus("done", "ok"); }
+      } else {
+        line("\n✓ agent finished", "res"); setStatus("done", "ok");
+      }
+    } catch (err) {
+      line("[connection error] " + err, "err");
+      setStatus("error", "err");
+    } finally {
+      running = false;
+    }
+  }
+
+  function handleEvent(block){
+    const lines = block.split("\n");
+    let event = "message", data = "";
+    for (const l of lines){
+      if (l.startsWith("event: ")) event = l.slice(7);
+      else if (l.startsWith("data: ")) data += l.slice(6);
+    }
+    let d = {}; try { d = JSON.parse(data); } catch {}
+    if (event === "text"){ appendText(typeof d === "string" ? d : ""); }
+    else if (event === "tool"){ textNode = null; line("⚒ " + d.name + "  " + JSON.stringify(d.input).slice(0,160), "tool"); }
+    else if (event === "tool_result"){ line("   ↳ " + (d.output||"").split("\n")[0].slice(0,200), "res"); }
+    else if (event === "meta"){ metaEl.textContent = d.model + " · " + d.workspace; }
+    else if (event === "done"){ /* completion handled in runBuild (QA vs build) */ }
+    else if (event === "error"){ line("[agent error] " + d.message, "err"); setStatus("error","err"); }
+  }
+</script>
+</body>
+</html>
