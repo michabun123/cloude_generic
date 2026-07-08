@@ -1,0 +1,40 @@
+<!-- senior-qa REUSABLE REPORT TEMPLATE.
+     Render via visualize show_widget (title qa_report_<service>). Replace {{...}} placeholders.
+     One .bug-card per finding; severity ramp: HIGH=danger, MED=warning, LOW=muted. Add ".fixed" note when resolved.
+     Keep: header + 4 metric cards + Findings (bug cards) + Contract QA checklist + Coverage gaps + convention-compliance footer. -->
+<h2 class="sr-only">QA report for {{SERVICE}}.</h2>
+<div style="padding:1rem 0">
+  <div style="display:flex;align-items:center;gap:10px;margin:0 0 1rem">
+    <span style="width:34px;height:34px;border-radius:50%;background:var(--bg-success);display:flex;align-items:center;justify-content:center"><i class="ti ti-shield-check" style="font-size:19px;color:var(--text-success)" aria-hidden="true"></i></span>
+    <div><div style="font-size:16px;font-weight:500">QA report — {{SERVICE}}</div>
+    <div style="font-size:12px;color:var(--text-muted)">senior-qa · {{MODES}} · {{STACK}}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 1.4rem">
+    <div style="background:var(--surface-1);border-radius:8px;padding:0.8rem 1rem"><div style="font-size:12px;color:var(--text-muted)">Tests</div><div style="font-size:22px;font-weight:500">{{TESTS}}</div></div>
+    <div style="background:var(--surface-1);border-radius:8px;padding:0.8rem 1rem"><div style="font-size:12px;color:var(--text-muted)">Bugs found</div><div style="font-size:22px;font-weight:500">{{BUGS_FOUND}}</div></div>
+    <div style="background:var(--surface-1);border-radius:8px;padding:0.8rem 1rem"><div style="font-size:12px;color:var(--text-muted)">Bugs fixed</div><div style="font-size:22px;font-weight:500">{{BUGS_FIXED}}</div></div>
+    <div style="background:var(--surface-1);border-radius:8px;padding:0.8rem 1rem"><div style="font-size:12px;color:var(--text-muted)">Coverage gaps</div><div style="font-size:22px;font-weight:500">{{GAPS}}</div></div>
+  </div>
+  <!-- repeat per finding: -->
+  <div style="border:0.5px solid var(--border-danger);border-radius:12px;overflow:hidden;margin:0 0 1rem">
+    <div style="background:var(--bg-danger);padding:10px 14px;display:flex;align-items:center;gap:9px">
+      <span style="font-size:11px;font-weight:500;background:var(--fill-danger);color:var(--on-danger);padding:2px 9px;border-radius:99px">{{SEVERITY}} · {{STATUS}}</span>
+      <span style="font-size:14px;font-weight:500;color:var(--text-danger)">{{BUG_TITLE}}</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-danger)">{{PERSONA}}</span>
+    </div>
+    <div style="padding:12px 14px;font-size:13px;line-height:1.6">
+      <p style="margin:0 0 8px"><span style="color:var(--text-muted)">Scenario:</span> {{SCENARIO}}</p>
+      <p style="margin:0 0 8px"><span style="color:var(--text-muted)">Cause:</span> {{CAUSE}}</p>
+      <p style="margin:0 0 8px"><span style="color:var(--text-muted)">Fix:</span> {{FIX}}</p>
+      <p style="margin:0"><span style="color:var(--text-muted)">Verified:</span> {{VERIFIED}}</p>
+    </div>
+  </div>
+  <!-- Contract QA checklist + Coverage gaps + footer (see qa_report_prepTestAccountMS render) -->
+  <div style="margin-top:1.2rem;font-size:12px;color:var(--text-muted);border-top:0.5px solid var(--border);padding-top:10px"><i class="ti ti-lock" aria-hidden="true"></i> No spring-boot conventions changed — QA additive.</div>
+</div>
+<!-- FIX BUTTONS: put a "Fix all open" button in the header (id=fix-all) and a per-OPEN-finding
+     <button class="fix-btn" data-fix="<exact fix instruction>">Fix this ↗</button>. Script:
+  document.querySelectorAll('.fix-btn').forEach(b=>b.onclick=()=>sendPrompt('Using the senior-qa skill, '+b.dataset.fix+'. Additive only — never change spring-boot conventions.'));
+  fixAll.onclick=()=>sendPrompt('Using the senior-qa skill, apply ALL open fixes from the <service> QA report, run mvn clean verify (JDK 21), re-render the report. Additive only.');
+  FIXED findings show "Applied ✓" (no button); flip the card ramp danger→success once fixed. -->
+

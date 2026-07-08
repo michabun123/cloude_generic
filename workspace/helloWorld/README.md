@@ -1,35 +1,37 @@
-# helloWorld
+# HelloWorld
 
-A minimal Java 21 Maven application.
+A minimal Java 21 application built with Maven.
 
-- **Base package:** `com.interview.preps`
-- **Entry point:** `com.interview.preps.Main`
-- **Build tool:** Maven
+- **Base package:** `com.interview.palo`
+- **Entry point:** `com.interview.palo.Main`
 - **Java version:** 21
+
+> Note: requested target location was `c:\Interviews\preps\HelloWorld`, but the
+> build agent is sandboxed to its workspace. Copy this `HelloWorld` folder there
+> to use the intended path.
 
 ## Build & Test
 
 ```bash
-mvn clean package
+mvn clean test      # compile and run JUnit 5 tests
+mvn clean package   # build the jar
 ```
-
-This compiles the code, runs the JUnit 5 tests, and produces `target/helloWorld.jar`.
 
 ## Run
 
-Via the packaged jar:
+Using the exec plugin:
 
 ```bash
-java -jar target/helloWorld.jar
+mvn compile exec:java
 ```
 
-Via Maven (using the compiled classes):
+Or run the compiled class directly:
 
 ```bash
-mvn -q compile exec:java -Dexec.mainClass=com.interview.preps.Main
+java -cp target/classes com.interview.palo.Main
 ```
 
-## IntelliJ IDEA
+## IntelliJ
 
-On import, a shareable run configuration named **helloWorld** (in `.run/helloWorld.run.xml`)
-is available immediately — just select it and click Run.
+The project ships with a shared run configuration at `.run/HelloWorld.run.xml`.
+On import, IntelliJ picks it up automatically — just select **HelloWorld** and run.
