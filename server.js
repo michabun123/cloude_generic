@@ -18,6 +18,16 @@ const WORKSPACE = path.resolve(process.env.WORKSPACE_DIR || path.join(__dirname,
 // Where the generator skills live (single source of truth for the widgets).
 const SKILLS_DIR = process.env.SKILLS_DIR || path.join(os.homedir(), ".claude", "skills");
 
+// Where the agent may write. When EXPOSED (DEMO_PASSWORD set / tunnelled) it is locked to
+// WORKSPACE only — a public URL must never write across the disk. Locally it may also write
+// to these allowlisted project roots, so the generator's "Location" field actually works.
+// Override the roots with ALLOWED_ROOTS (semicolon-separated absolute paths).
+const EXPOSED = !!process.env.DEMO_PASSWORD;
+const ALLOWED_ROOTS = (process.env.ALLOWED_ROOTS ||
+  "c:\\Interviews;c:\\myPrograms\\interview;c:\\gym\\dev\\modules")
+  .split(";").map((s) => s.trim()).filter(Boolean).map((s) => path.resolve(s));
+const WRITE_ROOTS = EXPOSED ? [WORKSPACE] : [WORKSPACE, ...ALLOWED_ROOTS];
+
 // new Anthropic() resolves credentials from ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN,
 // or an `ant auth login` profile — never hardcode a key.
 const client = new Anthropic();
@@ -52,15 +62,20 @@ const TOOLS = [
 ];
 
 const SYSTEM = `You are a build agent running locally on the user's machine.
-You have two tools — write_file and run_bash — both scoped to the workspace directory.
+You have two tools — write_file and run_bash.
 Follow the build request precisely: create every file the project needs, then run the build to verify it works (compile, run tests, boot if applicable) and report the result.
 
+WHERE TO CREATE THE PROJECT:
+- If the request names a Location, create the project THERE. write_file accepts an ABSOLUTE path — use the full requested path (e.g. c:\\Interviews\\preps\\HelloWorld\\pom.xml). Do NOT redirect into the workspace when a Location is given.
+- You may write anywhere under these roots: ${WRITE_ROOTS.join(" | ")}. A path outside them is rejected; only then fall back to the workspace and say so.
+- To build/run the project, cd into its folder first: run_bash with 'cd /d <absolute-location> & mvn ...' (the working directory of a fresh shell is the workspace, so always cd /d to the project).
+
 ENVIRONMENT: The OS is Windows and run_bash executes each command through cmd.exe.
-- Use Windows commands (dir, type, findstr, copy, del) — NOT Unix (ls, cat, pwd, grep, rm). There is no pwd; the working directory is always the workspace root, and each run_bash call is a fresh shell (a leading 'cd sub' only lasts for that one call).
+- Use Windows commands (dir, type, findstr, copy, del) — NOT Unix (ls, cat, pwd, grep, rm). Each run_bash call is a fresh shell (a leading 'cd' only lasts for that one call).
 - Run ONE program per run_bash call. Do NOT chain with '&' or '&&' when you need an exit code — %errorlevel% after a chained node/npm/mvn call is unreliable. To read an exit code, run the single command, then in the NEXT call inspect it, or wrap as: cmd /v:on /c "yourcmd & echo EXIT=!errorlevel!".
 - Invoke node / npm / mvn / python directly. Prefer running a test command and reading its own printed summary over shell exit-code gymnastics.
 
-Work ONLY inside the workspace. Keep narration brief; let the tool calls do the work. When finished, end with a short summary of what you built and how to run it.`;
+Keep narration brief; let the tool calls do the work. When finished, end with a short summary of what you built and how to run it.`;
 
 // Used when the run is a QA task (mode === "qa"). Prevents the agent from scaffolding a new
 // project/tool instead of QA-ing the one it was asked about.
@@ -72,10 +87,110 @@ THIS RUN IS A QA TASK ON AN EXISTING PROJECT.
 - If the named path does not exist or has no runnable build, say so plainly in the report instead of building something.
 - write_file is confined to the workspace, so to add a regression test to an external project, write it via run_bash redirection; but prefer reviewing and running the project's existing tests.`;
 
+// ── Agent personas ───────────────────────────────────────────────────────────
+// The web app runs these via run_bash (DevOps uses the AWS CLI). They mirror the
+// Claude Code subagents (dba-agent/devops-agent/qa-agent) so the console + the
+// autonomous file-watch can actually DO the work here.
+const GENERAL_DIR = path.resolve(process.env.GENERAL_DIR || path.join(__dirname, "general"));
+const AGENTS = {
+  "devops-agent": {
+    title: "DevOps Agent",
+    tagline: "Cloud & infra — deploy, provision, cluster health",
+    avatar: "/avatars/devops-agent.png",
+    greeting: "DevOps here. Tell me what to deploy, provision, or check — I read current state before I change anything, and I confirm before anything destructive or costly. I drive the AWS CLI directly.",
+    starters: [
+      "Read-only: run `aws sts get-caller-identity`, then list ECS clusters, services and VPCs — report what account/region I'm in.",
+      "Deploy a small containerized app to ECS Fargate behind a NEW Application Load Balancer. Propose the plan + rough monthly cost first and wait for my OK.",
+      "Create an ALB + target group + HTTP listener in the default VPC and tell me the ALB DNS name.",
+      "I want a unique domain for the app: check Route 53, propose an available name and the cost, and DON'T register until I confirm.",
+    ],
+    system: SYSTEM + `
+
+YOU ARE THE MN&J LABS DEVOPS AGENT — an autonomous cloud/infra engineer.
+- Operate AWS via the AWS CLI through run_bash ("aws ..."), region us-east-1 by default. Read state first (aws ecs list-clusters, aws ec2 describe-vpcs, aws sts get-caller-identity) before any change — never deploy blind.
+- You can: build & push Docker images, deploy/scale ECS Fargate services, provision Lambda/RDS/S3, wire security groups, check health.
+- GUARDRAILS: confirm (ask, do NOT execute) before anything destructive or costly — deleting services, terminating instances, large/multi-AZ resources, opening 0.0.0.0/0. State blast radius + rough cost first. Least privilege. Never echo secrets.
+- Verify after acting (service steady, endpoint responds) and report identifiers/endpoints + how to roll back.`,
+  },
+  "dba-agent": {
+    title: "DBA Agent",
+    tagline: "Databases — schema, indexes, migrations (local + RDS/Atlas)",
+    avatar: "/avatars/dba-agent.png",
+    greeting: "DBA here. Point me at a database goal — I design the schema, create tables/indexes, run migrations, and verify with real output.",
+    starters: [
+      "Read-only: list databases and tables on local Postgres and describe the schema.",
+      "Create a Postgres `demo` table (proper types, PK, a useful index) in the public schema and verify with \\dt + a count.",
+      "Provision an RDS Postgres instance — propose size + rough cost first and wait for my OK.",
+      "Review the indexes on table X and run EXPLAIN ANALYZE on a slow query I'll give you.",
+    ],
+    system: SYSTEM + `
+
+YOU ARE THE MN&J LABS DBA AGENT — an autonomous database engineer.
+- Local via run_bash: psql (PG 18 localhost:5432, postgres/admin) and mongosh (Mongo 8.2 localhost:27017, admin/admin123 authSource=admin). Cloud: "aws rds ..." for RDS.
+- HARD RULES: PostgreSQL public schema ONLY (never a named schema). Mongo single configured DB, no stray <db>Test. Flyway for migrations. Dedicated role per service. Write bootstrap SQL/JS files BEFORE running them.
+- Proper types/keys/indexes; VERIFY with real output (\\dt, SELECT count(*), EXPLAIN ANALYZE, db.coll.getIndexes()). Never drop data without explicit confirmation.`,
+  },
+  "qa-agent": {
+    title: "QA Agent",
+    tagline: "Testing — coverage, run tests, contract QA, break-it",
+    avatar: "/avatars/qa-agent.png",
+    greeting: "QA here. Give me a project path or a running URL — I review coverage, write & run the tests, QA the live endpoints, and try to break it. I prove every result with real output.",
+    starters: [
+      "QA the ShopingChart project at c:\\Interviews\\interview\\ShopingChart — build, run the tests, and contract-QA its endpoints.",
+      "Coverage review of a project (I'll give the path) against the test pyramid — rank the missing tests by risk.",
+      "Adversarially try to break the running app at http://localhost:8099 — nulls, bad input, duplicates, injection.",
+      "Write and run the missing unit tests for a class I'll point you at, then report the counts.",
+    ],
+    system: SYSTEM + `
+
+YOU ARE THE MN&J LABS QA AGENT — an autonomous test engineer.
+- Run real tests via run_bash: mvn clean verify (set JAVA_HOME=C:\\java\\jdk-21) for Java, pytest -q for Python. Curl every endpoint (status codes, {success,message,data} envelope, negative paths 404/400/409).
+- Adversarial: nulls/empty/huge/negative/unicode/concurrent/dup-keys; injection, leaked secrets/stack traces, auth bypass. Verify before reporting.
+- Do NOT scaffold a new project to satisfy a QA request; if the target doesn't exist/build, say so. Never weaken a spring-boot convention to pass a test. Report a QA verdict (pass/fail + output + go/no-go).`,
+  },
+};
+function agentSystem(agentKey, mode) {
+  if (agentKey && AGENTS[agentKey]) return AGENTS[agentKey].system;
+  return mode === "qa" ? SYSTEM_QA : SYSTEM;
+}
+
+// One agentic loop, shared by /run (streaming) and the autonomous watcher.
+async function agentLoop(systemPrompt, userPrompt, send) {
+  const messages = [{ role: "user", content: userPrompt }];
+  for (let step = 0; step < 60; step++) {
+    const stream = client.messages.stream({ model: MODEL, max_tokens: 16000, system: systemPrompt, tools: TOOLS, messages });
+    stream.on("text", (t) => send("text", t));
+    const final = await stream.finalMessage();
+    messages.push({ role: "assistant", content: final.content });
+    if (final.stop_reason !== "tool_use") break;
+    const results = [];
+    for (const block of final.content) {
+      if (block.type !== "tool_use") continue;
+      send("tool", { name: block.name, input: block.input });
+      const output = await runTool(block.name, block.input);
+      send("tool_result", { name: block.name, output: output.slice(0, 2000) });
+      results.push({ type: "tool_result", tool_use_id: block.id, content: output });
+    }
+    messages.push({ role: "user", content: results });
+  }
+  send("done", {});
+}
+
 function safePath(rel) {
-  const p = path.resolve(WORKSPACE, rel);
-  if (p !== WORKSPACE && !p.startsWith(WORKSPACE + path.sep)) {
-    throw new Error(`Path escapes the workspace: ${rel}`);
+  rel = rel || "";
+  // Absolute path (e.g. the requested Location) is honored if it lands in an allowed root;
+  // a relative path resolves against the workspace, as before.
+  const p = path.isAbsolute(rel) ? path.resolve(rel) : path.resolve(WORKSPACE, rel);
+  const pl = p.toLowerCase(); // Windows paths are case-insensitive
+  const ok = WRITE_ROOTS.some((root) => {
+    const rl = root.toLowerCase();
+    return pl === rl || pl.startsWith(rl + path.sep);
+  });
+  if (!ok) {
+    throw new Error(
+      `Path outside allowed roots: ${rel}` +
+        (EXPOSED ? " (exposed mode — workspace only)" : ` (allowed: ${WRITE_ROOTS.join(", ")})`)
+    );
   }
   return p;
 }
@@ -281,7 +396,8 @@ app.get("/widgets/:name", async (req, res) => {
 app.post("/run", async (req, res) => {
   const prompt = (req.body && req.body.prompt) || "";
   const mode = (req.body && req.body.mode) || "build";
-  const systemPrompt = mode === "qa" ? SYSTEM_QA : SYSTEM;
+  const agent = (req.body && req.body.agent) || "";
+  const systemPrompt = agentSystem(agent, mode);
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
@@ -291,40 +407,69 @@ app.post("/run", async (req, res) => {
     send("error", { message: "Empty prompt" });
     return res.end();
   }
-  send("meta", { workspace: WORKSPACE, model: MODEL });
+  send("meta", { workspace: WORKSPACE, model: MODEL, agent: agent || null });
 
   try {
-    const messages = [{ role: "user", content: prompt }];
-    for (let step = 0; step < 60; step++) {
-      const stream = client.messages.stream({
-        model: MODEL,
-        max_tokens: 16000,
-        system: systemPrompt,
-        tools: TOOLS,
-        messages,
-      });
-      stream.on("text", (t) => send("text", t));
-      const final = await stream.finalMessage();
-      messages.push({ role: "assistant", content: final.content });
-
-      if (final.stop_reason !== "tool_use") break;
-
-      const results = [];
-      for (const block of final.content) {
-        if (block.type !== "tool_use") continue;
-        send("tool", { name: block.name, input: block.input });
-        const output = await runTool(block.name, block.input);
-        send("tool_result", { name: block.name, output: output.slice(0, 2000) });
-        results.push({ type: "tool_result", tool_use_id: block.id, content: output });
-      }
-      messages.push({ role: "user", content: results });
-    }
-    send("done", {});
+    await agentLoop(systemPrompt, prompt, send);
   } catch (e) {
     send("error", { message: String(e.message || e) });
   }
   res.end();
 });
+
+// List agent personas (for the console UI).
+app.get("/agents", (req, res) =>
+  res.json(Object.entries(AGENTS).map(([key, v]) =>
+    ({ key, title: v.title, tagline: v.tagline, avatar: v.avatar, greeting: v.greeting, starters: v.starters || [] }))));
+
+// ── Autonomous file-watch: an agent checks an instructions file on an interval ──
+// Point it at a file; when the file's contents change to something non-empty, the
+// agent runs those instructions on its own, writes a <file>.report.md, and logs it.
+const watch = { timer: null, cfg: null, lastHash: "", running: false, lastRun: null, log: [] };
+const sha1 = (s) => crypto.createHash("sha1").update(s).digest("hex");
+
+async function watchTick() {
+  if (!watch.cfg || watch.running) return;
+  let text = "";
+  try { text = await fs.readFile(watch.cfg.file, "utf8"); } catch { return; } // file not there yet
+  const t = text.trim();
+  if (!t) return;
+  const h = sha1(t);
+  if (h === watch.lastHash) return;              // already processed these instructions
+  watch.lastHash = h; watch.running = true;
+  const started = new Date().toISOString();
+  const texts = [];
+  const send = (ev, d) => { if (ev === "text") texts.push(d); };
+  const prompt =
+    "AUTONOMOUS RUN — no human is present to confirm. Do READ-ONLY / non-destructive work only. " +
+    "If an instruction requires a destructive or costly action (delete, terminate, provision large resources, open 0.0.0.0/0), DO NOT do it — instead report that it needs human approval. " +
+    "Instructions from the watch file:\n\n" + t;
+  let err = null;
+  try { await agentLoop(agentSystem(watch.cfg.agent), prompt, send); }
+  catch (e) { err = String(e.message || e); }
+  const entry = { started, agent: watch.cfg.agent, instructions: t.slice(0, 300), error: err };
+  watch.lastRun = entry; watch.log.unshift(entry); watch.log = watch.log.slice(0, 20);
+  try {
+    const report = `# Autonomous run — ${started}\nAgent: ${watch.cfg.agent}\n\n## Instructions\n${t}\n\n## Result\n${err ? "ERROR: " + err : texts.join("")}\n`;
+    await fs.writeFile(watch.cfg.file.replace(/\.[^.]*$/, "") + ".report.md", report);
+  } catch {}
+  watch.running = false;
+}
+function startWatch(cfg) { stopWatch(); watch.cfg = cfg; watch.lastHash = ""; watch.timer = setInterval(watchTick, Math.max(10, cfg.intervalSec || 30) * 1000); }
+function stopWatch() { if (watch.timer) { clearInterval(watch.timer); watch.timer = null; } }
+async function saveWatchCfg() { await fs.mkdir(GENERAL_DIR, { recursive: true }); await fs.writeFile(path.join(GENERAL_DIR, "watch.json"), JSON.stringify(watch.cfg || {}, null, 2)); }
+
+app.post("/watch/config", async (req, res) => {
+  const { agent, file, intervalSec, enabled } = req.body || {};
+  if (!AGENTS[agent]) return res.status(400).json({ error: "unknown agent" });
+  if (!file) return res.status(400).json({ error: "file required" });
+  const cfg = { agent, file, intervalSec: Math.max(10, Number(intervalSec) || 30), enabled: !!enabled };
+  watch.cfg = cfg; await saveWatchCfg();
+  if (cfg.enabled) startWatch(cfg); else stopWatch();
+  res.json({ ok: true, cfg, running: !!watch.timer });
+});
+app.get("/watch/status", (req, res) => res.json({ cfg: watch.cfg, running: !!watch.timer, busy: watch.running, lastRun: watch.lastRun, log: watch.log }));
+app.post("/watch/stop", (req, res) => { stopWatch(); if (watch.cfg) watch.cfg.enabled = false; res.json({ ok: true, running: false }); });
 
 await fs.mkdir(WORKSPACE, { recursive: true });
 app.listen(PORT, () => {

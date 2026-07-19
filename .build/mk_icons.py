@@ -12,6 +12,7 @@ ti-route ti-shield-check ti-sitemap ti-stack-2 ti-trash
 ti-user-heart ti-user-search
 ti-server-2 ti-tools ti-accessible ti-browser ti-brand-apple
 ti-test-pipe ti-snowflake ti-clipboard-data ti-brand-docker ti-anchor ti-flame
+ti-brand-kotlin ti-brand-golang ti-microphone ti-briefcase ti-report-money ti-target-arrow ti-heart-handshake ti-speakerphone ti-user-check
 """.split()
 
 css = open("tabler.css", encoding="utf-8").read()

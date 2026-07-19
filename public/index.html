@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Generic — Agent Builder</title>
+<title>MN&amp;J Labs — Agent Builder</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <link rel="stylesheet" href="/icons.css">
 <style>
   :root{
@@ -66,12 +67,13 @@
 </head>
 <body>
 <header>
-  <span class="dot"><i class="ti ti-stack-2"></i></span>
+  <img src="/brand.png" alt="M&amp;J Labs" style="height:44px;width:44px;border-radius:10px;object-fit:cover;object-position:62% 42%">
   <div>
-    <h1>Generic — Agent Builder</h1>
-    <div class="sub">generator widget → Claude Agent (file + bash tools) → real build on your machine</div>
+    <h1>MN&amp;J Labs <span style="font-weight:400;color:var(--muted)">— Agent Builder</span></h1>
+    <div class="sub">humans + AI, shipping together · generator widget → Claude Agent → real build on your machine</div>
   </div>
   <div class="pick">
+    <a href="/agent.html?a=devops-agent" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-robot"></i> Agents</a>
     <button id="back" class="btn" hidden><i class="ti ti-arrow-left"></i> Team</button>
     <label class="sub" for="gen">Generator</label>
     <select id="gen">
@@ -85,7 +87,19 @@
 </header>
 
 <div class="wrap">
-  <div class="left"><iframe id="widget" src="/widgets/engineering-team" title="generator"></iframe></div>
+  <div class="left">
+    <div id="hero" style="display:flex;gap:10px;margin:0 0 10px;align-items:stretch">
+      <img src="/brand.png" alt="MN&amp;J Labs — humans + AI, shipping together"
+           style="flex:1;min-width:0;height:300px;object-fit:cover;border-radius:14px;border:0.5px solid var(--line)">
+      <div style="width:170px;display:flex;flex-direction:column;gap:10px">
+        <model-viewer src="/michael.glb" loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
+          style="flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;border:0.5px solid var(--line)"></model-viewer>
+        <model-viewer src="/joseph.glb" loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
+          style="flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;border:0.5px solid var(--line)"></model-viewer>
+      </div>
+    </div>
+    <iframe id="widget" src="/widgets/engineering-team" title="generator"></iframe>
+  </div>
   <div class="right">
     <div class="rhead">
       <b>Agent</b>
@@ -109,6 +123,7 @@
     gen.value = value;
     widget.src = "/widgets/" + value;
     back.hidden = (value === "engineering-team");   // show "← Team" only off the roster
+    document.getElementById("hero").style.display = (value === "engineering-team") ? "flex" : "none";  // banner + 3D crew on the company screen only
   }
   gen.onchange = () => switchGen(gen.value);
   back.onclick = () => switchGen("engineering-team");
@@ -192,6 +207,9 @@
     if (e.data.type === "apiSummary") { renderApiCard(e.data.data); return; }
     if (e.data.type !== "run") return;
     const prompt = (e.data.prompt || "").trim();
+    // Agent actions (Run devops-agent / Open DevOps panel / etc.) → open the Agent Console
+    const am = prompt.match(/\b(devops|dba|qa)-agent\b/);
+    if (am) { window.location.href = "/agent.html?a=" + am[1] + "-agent"; return; }
     const target = SLASH_TO_GEN[prompt.split(/\s/)[0]];
     if (target) { switchGen(target); return; }
     if (running) { line("[busy — a build is already running]", "err"); return; }
