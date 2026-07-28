@@ -73,12 +73,25 @@
     <div class="sub">humans + AI, shipping together · generator widget → Claude Agent → real build on your machine</div>
   </div>
   <div class="pick">
+    <a href="/dashboards.html" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-layout-dashboard"></i> Command Center</a>
     <a href="/agent.html?a=devops-agent" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-robot"></i> Agents</a>
+    <a href="/agent.html?a=naum" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-briefcase"></i> Naum · CBO</a>
+    <div style="position:relative">
+      <button id="srvbtn" class="btn" style="display:inline-flex;align-items:center;gap:6px"><span id="srvdot" style="width:8px;height:8px;border-radius:50%;background:#0f6e56;display:inline-block"></span> Server</button>
+      <div id="srvmenu" hidden style="position:absolute;right:0;top:110%;z-index:30;background:#fff;border:0.5px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.12);padding:6px;min-width:180px">
+        <div id="srvstatus" style="font-size:11.5px;color:var(--muted);padding:6px 9px 8px">checking…</div>
+        <button class="srvact" data-act="restart" style="font:inherit;font-size:13px;width:100%;text-align:left;display:flex;align-items:center;gap:8px;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:var(--ink);cursor:pointer"><span style="font-size:14px">↻</span> Restart</button>
+        <button class="srvact" data-act="stop" style="font:inherit;font-size:13px;width:100%;text-align:left;display:flex;align-items:center;gap:8px;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:var(--err);cursor:pointer"><span style="font-size:12px">■</span> Stop</button>
+      </div>
+    </div>
     <button id="back" class="btn" hidden><i class="ti ti-arrow-left"></i> Team</button>
     <label class="sub" for="gen">Generator</label>
     <select id="gen">
       <option value="engineering-team">Team</option>
       <option value="java-generator">Java / Spring</option>
+      <option value="kotlin-generator">Kotlin</option>
+      <option value="go-generator">Go</option>
+      <option value="node-ts-generator">Node / TS</option>
       <option value="python-generator">Python / FastAPI</option>
       <option value="ui-generator">UI (React / Flutter)</option>
       <option value="qa-runner">QA runner</option>
@@ -179,6 +192,9 @@
   // in-app navigation to that generator instead of firing a build.
   const SLASH_TO_GEN = {
     "/java-generator": "java-generator",
+    "/kotlin-generator": "kotlin-generator",
+    "/go-generator": "go-generator",
+    "/node-ts-generator": "node-ts-generator",
     "/python-generator": "python-generator",
     "/ui-generator": "ui-generator",
     "/engineering-team": "engineering-team",
@@ -208,6 +224,8 @@
     if (e.data.type !== "run") return;
     const prompt = (e.data.prompt || "").trim();
     // Agent actions (Run devops-agent / Open DevOps panel / etc.) → open the Agent Console
+    if (/\bnaum-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=naum"; return; }
+    if (/\bvadim-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=vadim"; return; }
     const am = prompt.match(/\b(devops|dba|qa)-agent\b/);
     if (am) { window.location.href = "/agent.html?a=" + am[1] + "-agent"; return; }
     const target = SLASH_TO_GEN[prompt.split(/\s/)[0]];
@@ -252,6 +270,33 @@
       running = false;
     }
   }
+
+  // ── Server control menu ──────────────────────────────────────────────
+  const srvbtn = document.getElementById("srvbtn");
+  const srvmenu = document.getElementById("srvmenu");
+  const srvdot = document.getElementById("srvdot");
+  const srvstatus = document.getElementById("srvstatus");
+  async function srvRefresh(){
+    try{
+      const s = await (await fetch("/admin/status")).json();
+      srvdot.style.background = "#0f6e56";
+      const m = Math.floor(s.uptimeSec/60), sec = s.uptimeSec%60;
+      srvstatus.textContent = "running · port " + s.port + " · pid " + s.pid + " · up " + (m?m+"m ":"") + sec + "s";
+    }catch(e){ srvdot.style.background = "#a32d2d"; srvstatus.textContent = "not reachable"; }
+  }
+  srvbtn.onclick = (e) => { e.stopPropagation(); const open = srvmenu.hasAttribute("hidden"); if(open){ srvmenu.removeAttribute("hidden"); srvRefresh(); } else srvmenu.setAttribute("hidden",""); };
+  document.addEventListener("click", () => srvmenu.setAttribute("hidden",""));
+  srvmenu.addEventListener("click", e => e.stopPropagation());
+  document.querySelectorAll(".srvact").forEach(b => b.onclick = async () => {
+    const act = b.dataset.act;
+    if(act==="stop" && !confirm("Stop the server? The app will go offline until you start it again (Server.bat or server-ctl.ps1 start).")) return;
+    if(act==="restart" && !confirm("Restart the server? The app will blink offline for ~2s.")) return;
+    srvstatus.textContent = act==="stop" ? "stopping…" : "restarting…"; srvdot.style.background = "#854f0b";
+    try{ await fetch("/admin/"+act, { method:"POST" }); }catch(e){}
+    if(act==="restart"){ setTimeout(function poll(){ fetch("/admin/status").then(()=>{ srvRefresh(); }).catch(()=>setTimeout(poll,600)); }, 1500); }
+    else { srvstatus.textContent = "stopped"; srvdot.style.background = "#a32d2d"; }
+  });
+  srvRefresh();
 
   function handleEvent(block){
     const lines = block.split("\n");

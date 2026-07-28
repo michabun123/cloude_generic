@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "generic-agent-web",
+      "name": "mnj-command-center",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:\\claude\\generic\\server.js"],
+      "runtimeArgs": ["server.js"],
       "port": 5178
     }
   ]

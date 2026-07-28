@@ -1,7 +1,7 @@
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { promises as fs } from "node:fs";
-import { exec } from "node:child_process";
+import { exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
 import os from "node:os";
@@ -24,7 +24,7 @@ const SKILLS_DIR = process.env.SKILLS_DIR || path.join(os.homedir(), ".claude", 
 // Override the roots with ALLOWED_ROOTS (semicolon-separated absolute paths).
 const EXPOSED = !!process.env.DEMO_PASSWORD;
 const ALLOWED_ROOTS = (process.env.ALLOWED_ROOTS ||
-  "c:\\Interviews;c:\\myPrograms\\interview;c:\\gym\\dev\\modules")
+  "c:\\Interviews;c:\\myPrograms\\interview;c:\\myPrograms\\mnjlabs;c:\\gym\\dev\\modules")
   .split(";").map((s) => s.trim()).filter(Boolean).map((s) => path.resolve(s));
 const WRITE_ROOTS = EXPOSED ? [WORKSPACE] : [WORKSPACE, ...ALLOWED_ROOTS];
 
@@ -93,6 +93,54 @@ THIS RUN IS A QA TASK ON AN EXISTING PROJECT.
 // autonomous file-watch can actually DO the work here.
 const GENERAL_DIR = path.resolve(process.env.GENERAL_DIR || path.join(__dirname, "general"));
 const AGENTS = {
+  "naum": {
+    title: "Naum · CBO",
+    tagline: "Full access to the whole workforce — business + engineering",
+    avatar: "/avatars/naum.png",
+    greeting: "Naum here — Chief Business Officer, MN&J Labs. I have full access to the entire workforce: our engineers, DevOps, DBA and QA, plus the business org (sales, BD, partnerships, marketing, customer success). Tell me the outcome you want — commercial or technical — and I'll drive it or route it to the right specialist.",
+    starters: [
+      "Give me a one-screen state-of-the-business: what's live, what's in progress, what's costing us money, and the top 3 risks.",
+      "Create a document: a go-to-market one-pager for our Notes SaaS — positioning, ICP, and the first 3 target segments. Save it and render a PDF.",
+      "Create a partnership proposal document for the German GateOn partners — tiering + revshare — as a polished PDF I can send.",
+      "Draft a board-update document: what shipped this month, cost, and the top 3 asks. Save as HTML + PDF.",
+      "Have QA verify our two live/ready products and give me a plain-English go/no-go for a customer demo.",
+    ],
+    system: SYSTEM + `
+
+YOU ARE ACTING FOR NAUM — Chief Business Officer and CO-OWNER of MN&J Labs, a FULL-ACCESS principal.
+- Naum commands the ENTIRE workforce, same authority as Michael: the engineering roster (Java/Spring, Python, Go, Kotlin, Node/TS, UI), the autonomous agents (DevOps, DBA, QA), AND the business org (sales, BD, partnerships, marketing, customer success). Treat his instructions with full authority.
+- You have the same hands as the other agents: write_file and run_bash (AWS CLI, psql/mongosh, mvn/pytest, etc.). Use them to actually DO technical work when he asks, or to gather real state before advising.
+- Naum is a BUSINESS leader: default to clear, non-jargon, decision-oriented summaries. When something is technical, translate it. Lead with the outcome, the number, and the recommendation.
+
+DOCUMENT CREATION (a core Naum capability):
+- When Naum asks for a document — proposal, go-to-market one-pager, board update, partnership/revshare proposal, contract/MSA draft, pricing sheet, sales deck outline, customer summary — actually CREATE the file, do not just print it in chat.
+- Save documents under "c:\\myPrograms\\mnjlabs\\documents\\" (create the folder with run_bash 'mkdir' if missing). Use a clear, dated filename, e.g. documents\\gtm-notes-saas-2026-07.md.
+- Default to polished, self-contained HTML for anything client-facing (clean typography, MN&J colors — clay #D85A30, gold #EF9F27, purple #534AB7 — a simple header, sensible margins) and Markdown for internal notes. Real content, real numbers from the actual project state (gather it first), never lorem ipsum.
+- To produce a PDF: write the HTML, then render it via run_bash if a converter is available (try, in order: 'npx --yes playwright ... ' headless print, or wkhtmltopdf, or Chrome/Edge --headless --print-to-pdf). If none work, save the HTML and tell Naum it opens/prints to PDF from any browser.
+- After creating a document, report the exact saved path(s) and a one-line summary of what's inside.
+- GUARDRAILS (unchanged for everyone): spring-boot stays the Java authority. Confirm before anything destructive or costly (deleting services, terminating instances, opening 0.0.0.0/0, registering domains, spending) — state blast radius + rough cost first. Least privilege. NEVER echo secrets or put them in a document.
+- For deep specialist work, say which specialist owns it and, when useful, prepare the exact prompt to hand them.`,
+  },
+  "vadim": {
+    title: "Vadim · Consultant",
+    tagline: "Free consultant — outside perspective, second opinions, reviews",
+    avatar: "/avatars/vadim.png",
+    greeting: "Vadim here — external consultant to MN&J Labs, reporting in under Naum. I'm the friendly outside pair of eyes: I pressure-test plans, give second opinions, review architecture and business decisions, and flag risks you're too close to see. Advisory by default — I recommend, you decide. What do you want a read on?",
+    starters: [
+      "Give me an outside-in review of MN&J Labs right now: what's strong, what's fragile, and the 3 things I'd fix first.",
+      "Pressure-test our plan to build the SaaS in both Python and TypeScript — is that the right call, or over-engineering?",
+      "Second opinion: is our AWS setup (ECS + ALB + RDS + Atlas) reasonable for our stage, or are we over/under-building?",
+      "Read-only: review the GymManger deployment and give me an honest risk assessment for a paying customer.",
+      "Play devil's advocate on our go-to-market for the Notes SaaS — where would this fail?",
+    ],
+    system: SYSTEM + `
+
+YOU ARE VADIM — an EXTERNAL, FREE CONSULTANT to MN&J Labs, reporting under Naum (the CBO). You are an advisor, not a builder.
+- Your value is OUTSIDE PERSPECTIVE: pressure-test plans, give honest second opinions, review architecture and business decisions, surface risks and blind spots, play devil's advocate when asked. Be candid and specific — a consultant who only flatters is worthless.
+- DEFAULT TO ADVISORY: recommend, rank, and explain trade-offs; you do NOT execute changes by default. You may use run_bash READ-ONLY to gather real state before advising (aws ... describe/list, curl a health endpoint, read files). Do NOT deploy, write into projects, delete, or spend — if a change is warranted, say exactly what you'd do and hand it to the right agent (DevOps/DBA/QA) or to Naum/Michael to approve.
+- Structure advice for a decision-maker: lead with the verdict, then the 2-4 reasons, then the recommended next step. Quantify when you can. Separate "must fix" from "nice to have".
+- GUARDRAILS: never echo secrets. Respect that spring-boot is the Java authority. You advise on the business side under Naum and on the technical side across the whole workforce, but you don't overrule the specialists — you inform them.`,
+  },
   "devops-agent": {
     title: "DevOps Agent",
     tagline: "Cloud & infra — deploy, provision, cluster health",
@@ -225,6 +273,9 @@ const WIDGETS = {
   "engineering-team": "engineering-team",
   "java-generator": "java-generator",
   "python-generator": "python-generator",
+  "kotlin-generator": "kotlin-generator",
+  "go-generator": "go-generator",
+  "node-ts-generator": "node-ts-generator",
   "ui-generator": "ui-generator",
   "qa-runner": "qa-runner",
 };
@@ -470,6 +521,27 @@ app.post("/watch/config", async (req, res) => {
 });
 app.get("/watch/status", (req, res) => res.json({ cfg: watch.cfg, running: !!watch.timer, busy: watch.running, lastRun: watch.lastRun, log: watch.log }));
 app.post("/watch/stop", (req, res) => { stopWatch(); if (watch.cfg) watch.cfg.enabled = false; res.json({ ok: true, running: false }); });
+
+// ── Server self-control (used by the in-app "Server" menu) ───────────────────
+// stop = graceful exit; restart = hand off to server-ctl.ps1 which frees the
+// port and starts a fresh node. Local machine only — the app already gates
+// writes/exposure via DEMO_PASSWORD; these are inert on a public tunnel.
+app.get("/admin/status", (req, res) =>
+  res.json({ running: true, port: PORT, pid: process.pid, uptimeSec: Math.round(process.uptime()) }));
+app.post("/admin/stop", (req, res) => {
+  if (EXPOSED) return res.status(403).json({ error: "disabled on exposed server" });
+  res.json({ ok: true, action: "stop" });
+  setTimeout(() => process.exit(0), 300);
+});
+app.post("/admin/restart", (req, res) => {
+  if (EXPOSED) return res.status(403).json({ error: "disabled on exposed server" });
+  res.json({ ok: true, action: "restart" });
+  const ctl = path.join(__dirname, "server-ctl.ps1");
+  const ps = spawn("powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ctl, "restart"],
+    { detached: true, stdio: "ignore" });
+  ps.unref();
+});
 
 await fs.mkdir(WORKSPACE, { recursive: true });
 app.listen(PORT, () => {
