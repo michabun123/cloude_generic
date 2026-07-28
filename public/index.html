@@ -76,6 +76,7 @@
     <a href="/dashboards.html" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-layout-dashboard"></i> Command Center</a>
     <a href="/agent.html?a=devops-agent" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-robot"></i> Agents</a>
     <a href="/agent.html?a=naum" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-briefcase"></i> Naum · CBO</a>
+    <a href="/interview.html" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px"><i class="ti ti-microphone"></i> Interview</a>
     <div style="position:relative">
       <button id="srvbtn" class="btn" style="display:inline-flex;align-items:center;gap:6px"><span id="srvdot" style="width:8px;height:8px;border-radius:50%;background:#0f6e56;display:inline-block"></span> Server</button>
       <div id="srvmenu" hidden style="position:absolute;right:0;top:110%;z-index:30;background:#fff;border:0.5px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.12);padding:6px;min-width:180px">
@@ -226,6 +227,7 @@
     // Agent actions (Run devops-agent / Open DevOps panel / etc.) → open the Agent Console
     if (/\bnaum-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=naum"; return; }
     if (/\bvadim-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=vadim"; return; }
+    if (prompt === "/interview") { window.location.href = "/interview.html"; return; }
     const am = prompt.match(/\b(devops|dba|qa)-agent\b/);
     if (am) { window.location.href = "/agent.html?a=" + am[1] + "-agent"; return; }
     const target = SLASH_TO_GEN[prompt.split(/\s/)[0]];
