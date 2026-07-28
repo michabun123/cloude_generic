@@ -1,6 +1,6 @@
 import express from "express";
 import Anthropic from "@anthropic-ai/sdk";
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync, existsSync } from "node:fs";
 import { exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -10,6 +10,22 @@ import crypto from "node:crypto";
 
 const execP = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load a local .env (KEY=VALUE per line) if present, so the agents get ANTHROPIC_API_KEY
+// without you having to export it each time. Existing env vars are NOT overridden.
+try {
+  const envFile = path.join(__dirname, ".env");
+  if (existsSync(envFile)) {
+    for (const line of readFileSync(envFile, "utf8").split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+      if (!m || line.trimStart().startsWith("#")) continue;
+      let v = m[2];
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+      if (!process.env[m[1]]) process.env[m[1]] = v;
+    }
+    console.log("loaded .env");
+  }
+} catch (e) { console.error("could not load .env:", e.message); }
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5178;
