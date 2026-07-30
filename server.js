@@ -315,6 +315,7 @@ const WIDGETS = {
   "kotlin-generator": "kotlin-generator",
   "go-generator": "go-generator",
   "node-ts-generator": "node-ts-generator",
+  "serverless-generator": "serverless-generator",
   "ui-generator": "ui-generator",
   "qa-runner": "qa-runner",
 };
