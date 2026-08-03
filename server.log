@@ -1,4 +1,5 @@
 loaded .env
+loaded 3 vars from mail-env.ps1
 🔓 Auth gate OFF — set DEMO_PASSWORD before exposing this app (tunnel/cloud).
 generic-agent-web  →  http://localhost:5178
 workspace          →  C:\claude\generic\workspace

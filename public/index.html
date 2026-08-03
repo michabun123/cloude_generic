@@ -85,6 +85,17 @@
         <div id="srvstatus" style="font-size:11.5px;color:var(--muted);padding:6px 9px 8px">checking…</div>
         <button class="srvact" data-act="restart" style="font:inherit;font-size:13px;width:100%;text-align:left;display:flex;align-items:center;gap:8px;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:var(--ink);cursor:pointer"><span style="font-size:14px">↻</span> Restart</button>
         <button class="srvact" data-act="stop" style="font:inherit;font-size:13px;width:100%;text-align:left;display:flex;align-items:center;gap:8px;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:var(--err);cursor:pointer"><span style="font-size:12px">■</span> Stop</button>
+
+        <!-- Ports: what is holding each of this project's ports, and a one-click free.
+             Only the server's own allowlist of ports can ever be killed. -->
+        <div style="border-top:0.5px solid var(--line);margin:6px 0 0;padding:8px 9px 4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:.7px;color:var(--muted)">PORTS</span>
+            <button id="portsRefresh" title="refresh" style="margin-left:auto;font:inherit;font-size:11px;border:0;background:transparent;color:var(--muted);cursor:pointer">↻</button>
+            <button id="killAll" style="font:inherit;font-size:11px;border:0;background:transparent;color:var(--err);cursor:pointer;font-weight:600">kill all</button>
+          </div>
+          <div id="portList" style="margin-top:5px;font-size:11.5px">loading…</div>
+        </div>
       </div>
     </div>
     <button id="back" class="btn" hidden><i class="ti ti-arrow-left"></i> Team</button>
@@ -98,6 +109,7 @@
       <option value="serverless-generator">Serverless (SAM)</option>
       <option value="python-generator">Python / FastAPI</option>
       <option value="ui-generator">UI (React / Flutter)</option>
+      <option value="firebase-generator">Firebase</option>
       <option value="qa-runner">QA runner</option>
     </select>
   </div>
@@ -202,6 +214,7 @@
     "/serverless-generator": "serverless-generator",
     "/python-generator": "python-generator",
     "/ui-generator": "ui-generator",
+    "/firebase-generator": "firebase-generator",
     "/engineering-team": "engineering-team",
   };
   function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -302,6 +315,63 @@
     if(act==="restart"){ setTimeout(function poll(){ fetch("/admin/status").then(()=>{ srvRefresh(); }).catch(()=>setTimeout(poll,600)); }, 1500); }
     else { srvstatus.textContent = "stopped"; srvdot.style.background = "#a32d2d"; }
   });
+  // ── Ports panel ──────────────────────────────────────────────────────
+  // Reads /admin/ports and offers a per-port "free". The server refuses any
+  // port outside its own allowlist, so this UI cannot kill something unrelated.
+  const portList = document.getElementById("portList");
+  const PORT_LABELS = {
+    5178:"Command Center", 4000:"Emulator UI", 5000:"Proofly console",
+    5001:"Functions", 8181:"Firestore", 9099:"Auth", 9199:"Storage"
+  };
+  async function portsRefresh(){
+    portList.textContent = "loading…";
+    try{
+      const { ports } = await (await fetch("/admin/ports")).json();
+      portList.innerHTML = ports.map(p => `
+        <div style="display:flex;align-items:center;gap:7px;padding:3px 0">
+          <span style="width:7px;height:7px;border-radius:50%;flex:none;background:${p.listening?'#0f6e56':'#c9d2d6'}"></span>
+          <span style="width:36px;color:var(--ink)">${p.port}</span>
+          <span style="flex:1;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PORT_LABELS[p.port]||''}</span>
+          ${p.listening
+            ? `<button class="killport" data-port="${p.port}" title="free this port"
+                 style="font:inherit;font-size:10.5px;border:0;background:transparent;color:var(--err);cursor:pointer">free</button>`
+            : `<span style="font-size:10.5px;color:var(--muted)">free</span>`}
+        </div>`).join("");
+    }catch(e){ portList.textContent = "could not read ports"; }
+  }
+  async function killPort(port){
+    const row = portList.querySelector(`[data-port="${port}"]`);
+    if(row){ row.textContent = "…"; row.disabled = true; }
+    try{
+      const r = await fetch("/admin/kill-port", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ port: Number(port) })
+      });
+      const j = await r.json();
+      if(!r.ok) throw new Error(j.error || ("HTTP " + r.status));
+    }catch(e){ alert("Could not free port " + port + ": " + e.message); }
+    // Killing 5178 kills this very server, so the refresh will fail — expected.
+    setTimeout(portsRefresh, 600);
+  }
+  portList.addEventListener("click", e => {
+    const b = e.target.closest(".killport");
+    if(!b) return;
+    const port = b.dataset.port;
+    const self = String(port) === String(location.port || 5178);
+    if(self && !confirm("Port " + port + " is THIS server. Freeing it takes the app offline until you start it again (Server.bat or server-ctl.ps1 start). Continue?")) return;
+    killPort(port);
+  });
+  document.getElementById("portsRefresh").onclick = portsRefresh;
+  document.getElementById("killAll").onclick = () => {
+    if(!confirm("Free ALL project ports?\n\nThis stops the Firebase emulators (their seeded data is in memory and will be lost — re-seed with 'npm run seed') AND this server.")) return;
+    const others = Object.keys(PORT_LABELS).filter(p => String(p) !== String(location.port || 5178));
+    // Kill this server LAST, otherwise the requests for the others never arrive.
+    Promise.all(others.map(p => fetch("/admin/kill-port", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ port:Number(p) })
+    }).catch(()=>{}))).then(() => killPort(location.port || 5178));
+  };
+
+  srvbtn.addEventListener("click", () => { if(!srvmenu.hasAttribute("hidden")) portsRefresh(); });
   srvRefresh();
 
   function handleEvent(block){

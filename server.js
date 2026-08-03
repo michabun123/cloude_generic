@@ -27,6 +27,25 @@ try {
   }
 } catch (e) { console.error("could not load .env:", e.message); }
 
+// Also read mail-env.ps1 ($env:NAME = "value" lines). That file is the single
+// source of truth for the mail credentials, and parsing it here means the server
+// picks them up however it was launched — IntelliJ Node.js run config, npm start,
+// a bare `node server.js` — with no environment set up in the IDE and no secret
+// living inside a run configuration. Real env vars still win.
+try {
+  const psFile = path.join(__dirname, "mail-env.ps1");
+  if (existsSync(psFile)) {
+    let n = 0;
+    for (const line of readFileSync(psFile, "utf8").split(/\r?\n/)) {
+      if (line.trimStart().startsWith("#")) continue;
+      const m = line.match(/^\s*\$env:([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(['"])(.*?)\2\s*$/);
+      if (!m) continue;
+      if (!process.env[m[1]]) { process.env[m[1]] = m[3]; n++; }
+    }
+    if (n) console.log(`loaded ${n} vars from mail-env.ps1`);
+  }
+} catch (e) { console.error("could not load mail-env.ps1:", e.message); }
+
 // ── Config ──────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5178;
 // Where the agent is allowed to create/build projects. Everything is confined here.
@@ -317,6 +336,7 @@ const WIDGETS = {
   "node-ts-generator": "node-ts-generator",
   "serverless-generator": "serverless-generator",
   "ui-generator": "ui-generator",
+  "firebase-generator": "firebase-generator",
   "qa-runner": "qa-runner",
 };
 
@@ -403,7 +423,10 @@ const QA_SHIM =
 async function widgetHtml(name) {
   const file = path.join(SKILLS_DIR, WIDGETS[name], "SKILL.md");
   const md = await fs.readFile(file, "utf8");
-  const m = md.match(/```html\n([\s\S]*?)\n```/);
+  // \r?\n — a SKILL.md saved with Windows line endings otherwise fails to match
+  // and the widget 500s ("No html block found"), which is what happened to
+  // java-generator. Every skill file is a potential CRLF file on this machine.
+  const m = md.match(/```html\r?\n([\s\S]*?)\r?\n```/);
   if (!m) throw new Error(`No html block found in ${file}`);
   const inner = m[1];
   return `<!doctype html><html><head><meta charset="utf-8">
@@ -472,7 +495,14 @@ if (DEMO_PASSWORD) {
   console.log("🔓 Auth gate OFF — set DEMO_PASSWORD before exposing this app (tunnel/cloud).");
 }
 
-app.use(express.static(path.join(__dirname, "public")));
+// Never cache HTML. These pages carry their own JS inline, so a cached page keeps
+// running yesterday's logic against today's server — which is exactly how a mail
+// went out with the old subject after the code had already been changed.
+app.use(express.static(path.join(__dirname, "public"), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html")) res.setHeader("Cache-Control", "no-store, must-revalidate");
+  },
+}));
 
 app.get("/widgets/:name", async (req, res) => {
   const name = req.params.name;
@@ -562,6 +592,139 @@ app.post("/watch/config", async (req, res) => {
 app.get("/watch/status", (req, res) => res.json({ cfg: watch.cfg, running: !!watch.timer, busy: watch.running, lastRun: watch.lastRun, log: watch.log }));
 app.post("/watch/stop", (req, res) => { stopWatch(); if (watch.cfg) watch.cfg.enabled = false; res.json({ ok: true, running: false }); });
 
+// ── Mail — "send to the team" from the Command Center ────────────────────────
+// mnjlabs.com is on Google Workspace, so we authenticate AS the mailbox and the
+// From address is genuinely ours (no SES, no domain verification needed).
+//
+// Credentials come from the environment and are NEVER written to a file that is
+// served or committed:
+//   MAIL_USER  michaelbu@mnjlabs.com
+//   MAIL_PASS  a Google *App Password* (16 chars, needs 2-Step Verification on)
+//   MAIL_FROM  optional display form, defaults to "MN&J Labs <MAIL_USER>"
+const mailCfg = () => ({
+  user: process.env.MAIL_USER || "",
+  pass: process.env.MAIL_PASS || "",
+  from: process.env.MAIL_FROM || `MN&J Labs <${process.env.MAIL_USER || ""}>`,
+});
+
+async function mailer() {
+  const { user, pass } = mailCfg();
+  if (!user || !pass) throw new Error("MAIL_USER / MAIL_PASS are not set on the server");
+  const { default: nodemailer } = await import("nodemailer");
+  return nodemailer.createTransport({
+    host: "smtp.gmail.com", port: 465, secure: true, auth: { user, pass },
+  });
+}
+
+// Is mail configured? Optionally prove the credentials with a real SMTP login
+// (?verify=1) — verify() authenticates without sending anything.
+app.get("/mail/status", async (req, res) => {
+  const { user, from } = mailCfg();
+  const configured = !!(mailCfg().user && mailCfg().pass);
+  if (!configured) return res.json({ configured: false, user: user || null });
+  if (!req.query.verify) return res.json({ configured: true, user, from });
+  try {
+    const t = await mailer(); await t.verify();
+    res.json({ configured: true, verified: true, user, from });
+  } catch (e) {
+    res.json({ configured: true, verified: false, user, error: String(e.message || e) });
+  }
+});
+
+// The team signature. Built here, in one place, so every mail the app sends
+// carries the same block regardless of which screen sent it.
+// TODO: send as support@mnjlabs.com once that mailbox exists (see TODO.md).
+const TEAM_SIG = [
+  { name: "Michael", role: "engineering · the human in the loop" },
+  { name: "Naum",    role: "chief business officer" },
+  { name: "Vadim",   role: "consultant · outside perspective" },
+  { name: "Joseph",  role: "AI team lead · with DevOps, DBA & QA agents" },
+];
+
+function sigText() {
+  return "\n\n--\nMN&J Labs - humans + AI, shipping together\n"
+    + TEAM_SIG.map(m => `  ${m.name} - ${m.role}`).join("\n")
+    + `\n${mailCfg().user}`;
+}
+
+function sigHtml() {
+  const rows = TEAM_SIG.map(m =>
+    `<tr><td style="padding:1px 10px 1px 0;font-weight:700;color:#1d2b2f;white-space:nowrap">${m.name}</td>`
+    + `<td style="padding:1px 0;color:#7c8b93">${m.role}</td></tr>`).join("");
+  return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;border-top:1px solid #e4e9ec;padding-top:14px;font:13px/1.55 -apple-system,Segoe UI,Roboto,sans-serif">
+    <tr><td>
+      <div style="font-size:15px;font-weight:800;letter-spacing:-.2px">
+        <span style="color:#FF7A4A">MN</span><span style="color:#F5B133">&amp;J</span><span style="color:#8B82F5"> Labs</span>
+      </div>
+      <div style="font-size:11.5px;color:#7c8b93;margin:1px 0 9px">humans + AI, shipping together</div>
+      <table cellpadding="0" cellspacing="0" border="0" style="font:12px/1.55 -apple-system,Segoe UI,Roboto,sans-serif">${rows}</table>
+      <div style="margin-top:9px;font-size:11.5px">
+        <a href="mailto:${mailCfg().user}" style="color:#0EA37F;text-decoration:none">${mailCfg().user}</a>
+      </div>
+    </td></tr></table>`;
+}
+
+/** Plain text -> minimal HTML, so the signature can be styled without a template engine. */
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Attachments arrive base64-encoded in the JSON body, so this route needs a
+// bigger limit than the global 2mb parser. 30mb of base64 is ~22mb of file,
+// just under Gmail's 25mb ceiling.
+const MAX_ATTACH_BYTES = 20 * 1024 * 1024;
+
+app.post("/mail/send", express.json({ limit: "30mb" }), async (req, res) => {
+  try {
+    const { to, subject, body } = req.body || {};
+    // [{ filename, contentBase64 }] — always chosen by the user in a file dialog.
+    // The server never reads a path off disk, so this cannot be used to exfiltrate
+    // an arbitrary file by asking for it.
+    const incoming = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
+    const attachments = [];
+    let totalBytes = 0;
+    for (const a of incoming) {
+      if (!a || typeof a.filename !== "string" || typeof a.contentBase64 !== "string") {
+        return res.status(400).json({ error: "each attachment needs filename and contentBase64" });
+      }
+      const buf = Buffer.from(a.contentBase64, "base64");
+      totalBytes += buf.length;
+      if (totalBytes > MAX_ATTACH_BYTES) {
+        return res.status(413).json({
+          error: `attachments exceed ${Math.round(MAX_ATTACH_BYTES / 1024 / 1024)} MB`,
+        });
+      }
+      // Strip any path component — a filename is a name, never a location.
+      attachments.push({ filename: path.basename(a.filename), content: buf });
+    }
+    if (!to || !subject || !body) return res.status(400).json({ error: "to, subject and body are required" });
+    // ?dry=1 composes the message and returns it WITHOUT sending — for checking
+    // exactly what a client is producing (subject encoding, body, signature).
+    if (req.query.dry) {
+      return res.json({ dryRun: true, from: mailCfg().from, to, subject,
+        subjectLength: subject.length, text: body + sigText(),
+        attachments: attachments.map(a => ({ filename: a.filename, bytes: a.content.length })) });
+    }
+    const html = `<div style="font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1d2b2f">`
+      + esc(body).replace(/\r?\n/g, "<br>") + `</div>` + sigHtml();
+    const t = await mailer();
+    const info = await t.sendMail({
+      from: mailCfg().from, to, subject,
+      text: body + sigText(), html, replyTo: mailCfg().user,
+      ...(attachments.length ? { attachments } : {}),
+    });
+    const att = attachments.length
+      ? ` + ${attachments.length} attachment(s): ${attachments.map(a => a.filename).join(", ")}`
+      : "";
+    console.log(`[mail] sent to ${to}${att} — ${info.messageId}`);
+    res.json({
+      ok: true, messageId: info.messageId, to,
+      attachments: attachments.map(a => a.filename),
+    });
+  } catch (e) {
+    console.error("[mail] failed:", e.message);
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
 // ── Server self-control (used by the in-app "Server" menu) ───────────────────
 // stop = graceful exit; restart = hand off to server-ctl.ps1 which frees the
 // port and starts a fresh node. Local machine only — the app already gates
@@ -575,12 +738,64 @@ app.post("/admin/stop", (req, res) => {
 });
 app.post("/admin/restart", (req, res) => {
   if (EXPOSED) return res.status(403).json({ error: "disabled on exposed server" });
-  res.json({ ok: true, action: "restart" });
-  const ctl = path.join(__dirname, "server-ctl.ps1");
-  const ps = spawn("powershell",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ctl, "restart"],
-    { detached: true, stdio: "ignore" });
-  ps.unref();
+  res.json({ ok: true, action: "restart", pid: process.pid });
+  // Hand off to a detached child that waits for THIS process to exit (freeing the
+  // port) and then starts a fresh node. The previous version delegated to
+  // server-ctl.ps1 restart, whose stop step raced with our own exit — it reported
+  // success while the old process kept running. Do the sequencing explicitly.
+  const cmd = [
+    `Start-Sleep -Milliseconds 900`,
+    `Set-Location '${__dirname.replace(/'/g, "''")}'`,
+    `Start-Process -FilePath 'node' -ArgumentList 'server.js' -WindowStyle Hidden`,
+  ].join("; ");
+  // `cmd /c start` is what makes the successor genuinely independent. A plain
+  // spawn({detached:true}) is still torn down with this process on Windows, so
+  // the server stopped and never came back.
+  const child = spawn("cmd", ["/c", "start", "", "/b",
+    "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],
+    { detached: true, stdio: "ignore", cwd: __dirname, windowsHide: true });
+  child.on("error", (err) => console.error("[admin] restart failed to spawn:", err.message));
+  // Wait for the OS to create it before exiting — a fixed timer races libuv.
+  child.on("spawn", () => { child.unref(); setTimeout(() => process.exit(0), 200); });
+});
+
+// What is holding the project's ports — the generic server plus the Firebase
+// emulator suite, since those are the ones that get left running.
+app.get("/admin/ports", async (req, res) => {
+  const ports = [PORT, 4000, 5000, 5001, 8181, 9099, 9199];
+  const ps = `Get-NetTCPConnection -LocalPort ${ports.join(",")} -State Listen -EA SilentlyContinue |`
+    + ` Select-Object LocalPort,OwningProcess | ConvertTo-Json -Compress`;
+  try {
+    const { stdout } = await execP(`powershell -NoProfile -Command "${ps}"`);
+    let rows = stdout.trim() ? JSON.parse(stdout) : [];
+    if (!Array.isArray(rows)) rows = [rows];
+    const seen = new Map();
+    for (const r of rows) if (!seen.has(r.LocalPort)) seen.set(r.LocalPort, r.OwningProcess);
+    res.json({ ports: ports.map(p => ({ port: p, listening: seen.has(p), pid: seen.get(p) ?? null })) });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+// Free a port. Refuses to touch anything outside the project's own ports so a
+// stray call can't kill something unrelated on this machine.
+app.post("/admin/kill-port", async (req, res) => {
+  if (EXPOSED) return res.status(403).json({ error: "disabled on exposed server" });
+  const allowed = [PORT, 4000, 5000, 5001, 8181, 9099, 9199];
+  const port = Number(req.body?.port);
+  if (!allowed.includes(port)) {
+    return res.status(400).json({ error: `port must be one of ${allowed.join(", ")}` });
+  }
+  const ps = `Get-NetTCPConnection -LocalPort ${port} -State Listen -EA SilentlyContinue |`
+    + ` Select-Object -Expand OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -EA SilentlyContinue; $_ }`;
+  try {
+    const { stdout } = await execP(`powershell -NoProfile -Command "${ps}"`);
+    const killed = stdout.trim().split(/\r?\n/).filter(Boolean).map(Number);
+    console.log(`[admin] freed port ${port}${killed.length ? " (PID " + killed.join(", ") + ")" : " — nothing listening"}`);
+    res.json({ ok: true, port, killed });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
 });
 
 await fs.mkdir(WORKSPACE, { recursive: true });
