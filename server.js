@@ -21,7 +21,10 @@ try {
       if (!m || line.trimStart().startsWith("#")) continue;
       let v = m[2];
       if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-      if (!process.env[m[1]]) process.env[m[1]] = v;
+      // Skip EMPTY values. `KEY=` with nothing after it used to be written into
+      // process.env as "", which shadowed a real key from the shell and produced
+      // the SDK's opaque "Could not resolve authentication method" at call time.
+      if (v && !process.env[m[1]]) process.env[m[1]] = v;
     }
     console.log("loaded .env");
   }
@@ -66,6 +69,14 @@ const WRITE_ROOTS = EXPOSED ? [WORKSPACE] : [WORKSPACE, ...ALLOWED_ROOTS];
 // new Anthropic() resolves credentials from ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN,
 // or an `ant auth login` profile — never hardcode a key.
 const client = new Anthropic();
+
+// Say so at STARTUP rather than letting the first agent run fail with the SDK's
+// "Could not resolve authentication method", which reads like a code bug.
+const HAS_KEY = !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+const NO_KEY_MSG =
+  "No Anthropic credentials on the server, so the agents cannot run. " +
+  "Put a real key in C:\\claude\\generic\\.env as ANTHROPIC_API_KEY=sk-ant-... " +
+  "(the line is currently empty), then restart the server.";
 
 const MODEL = "claude-opus-4-8";
 
@@ -131,7 +142,7 @@ const AGENTS = {
   "naum": {
     title: "Naum · CBO",
     tagline: "Full access to the whole workforce — business + engineering",
-    avatar: "/avatars/naum.png",
+    avatar: "/avatars/naum.jpg",
     greeting: "Naum here — Chief Business Officer, MN&J Labs. I have full access to the entire workforce: our engineers, DevOps, DBA and QA, plus the business org (sales, BD, partnerships, marketing, customer success). Tell me the outcome you want — commercial or technical — and I'll drive it or route it to the right specialist.",
     starters: [
       "Give me a one-screen state-of-the-business: what's live, what's in progress, what's costing us money, and the top 3 risks.",
@@ -159,7 +170,7 @@ DOCUMENT CREATION (a core Naum capability):
   "vadim": {
     title: "Vadim · Consultant",
     tagline: "Free consultant — outside perspective, second opinions, reviews",
-    avatar: "/avatars/vadim.png",
+    avatar: "/avatars/vadim.jpg",
     greeting: "Vadim here — external consultant to MN&J Labs, reporting in under Naum. I'm the friendly outside pair of eyes: I pressure-test plans, give second opinions, review architecture and business decisions, and flag risks you're too close to see. Advisory by default — I recommend, you decide. What do you want a read on?",
     starters: [
       "Give me an outside-in review of MN&J Labs right now: what's strong, what's fragile, and the 3 things I'd fix first.",
@@ -528,6 +539,10 @@ app.post("/run", async (req, res) => {
     send("error", { message: "Empty prompt" });
     return res.end();
   }
+  if (!HAS_KEY) {
+    send("error", { message: NO_KEY_MSG });
+    return res.end();
+  }
   send("meta", { workspace: WORKSPACE, model: MODEL, agent: agent || null });
 
   try {
@@ -800,6 +815,7 @@ app.post("/admin/kill-port", async (req, res) => {
 
 await fs.mkdir(WORKSPACE, { recursive: true });
 app.listen(PORT, () => {
+  if (!HAS_KEY) console.warn(`\n  ⚠  ${NO_KEY_MSG}\n`);
   console.log(`generic-agent-web  →  http://localhost:${PORT}`);
   console.log(`workspace          →  ${WORKSPACE}`);
   console.log(`skills             →  ${SKILLS_DIR}`);
