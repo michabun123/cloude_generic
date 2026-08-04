@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MN&J Labs — Agent Console</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f5f1; --panel:#fff; --line:#e8e5dd; --line2:#f0eee8;
+    --muted:#8f8c82; --ink:#22201b; --ink2:#4a4740;
+    --a:#EF9F27; --a-ink:#633806; --a-bg:#FDF4E3;   /* per-agent accent, set in JS */
+    --shadow:0 1px 2px rgba(20,18,12,.04), 0 8px 24px rgba(20,18,12,.05);
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  header{display:flex;align-items:center;gap:14px;padding:13px 22px;border-bottom:.5px solid var(--line);background:rgba(255,255,255,.85);backdrop-filter:blur(8px);position:sticky;top:0;z-index:5}
+  header .home{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;display:inline-flex;gap:6px;align-items:center}
+  header .home:hover{color:var(--ink)}
+  header .brand{font-size:15px;font-weight:600;letter-spacing:.2px}
+  header .brand .m{color:#D85A30}header .brand .n{color:#EF9F27}header .brand .j{color:#534AB7}
+  header .sep{width:1px;height:18px;background:var(--line);margin:0 2px}
+  header select{margin-left:auto;font:inherit;font-size:13px;font-weight:500;padding:7px 12px;border:.5px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;box-shadow:var(--shadow)}
+  .wrap{display:grid;grid-template-columns:330px 1fr;gap:18px;padding:20px;max-width:1240px;margin:0 auto}
+  @media(max-width:840px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:.5px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  /* Persona */
+  .persona{padding:20px;text-align:center;position:relative;overflow:hidden}
+  .persona::before{content:"";position:absolute;inset:0 0 auto 0;height:96px;background:var(--a-bg);opacity:.7}
+  .frame{position:relative;width:210px;height:210px;margin:6px auto 14px;border-radius:22px;background:var(--a-bg);border:1px solid color-mix(in srgb,var(--a) 30%,#fff);overflow:hidden}
+  model-viewer.av,.av{width:100%;height:100%;display:block;background:transparent}
+  .av.emoji{display:flex;align-items:center;justify-content:center;font-size:72px}
+  .pname{font-size:19px;font-weight:600;position:relative}
+  .ptag{font-size:12.5px;color:var(--muted);margin-top:3px;position:relative}
+  .pbadge{display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:600;color:var(--a-ink);background:var(--a-bg);border:1px solid color-mix(in srgb,var(--a) 35%,#fff);padding:3px 11px;border-radius:99px;margin-top:12px;position:relative}
+  .pdot{width:6px;height:6px;border-radius:50%;background:var(--a);box-shadow:0 0 0 3px color-mix(in srgb,var(--a) 25%,transparent)}
+  .pwired{font-size:11.5px;color:var(--muted);margin-top:12px;position:relative;line-height:1.5}
+  .pwired b{color:var(--ink2);font-weight:600}
+  /* Watch */
+  .wcard{padding:18px;margin-top:16px}
+  .sect{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px;margin:0 0 8px}
+  .sect .g{width:6px;height:6px;border-radius:50%;background:var(--a)}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.55;margin:0 0 12px}
+  .hint code{background:var(--line2);padding:1px 5px;border-radius:5px;font-size:11px}
+  label{display:block;font-size:11.5px;font-weight:500;color:var(--ink2);margin:10px 0 4px}
+  input,textarea{width:100%;font:inherit;font-size:13px;padding:9px 11px;border:.5px solid var(--line);border-radius:10px;background:#fdfcfa;transition:border-color .12s,box-shadow .12s}
+  input:focus,textarea:focus{outline:0;border-color:var(--a);box-shadow:0 0 0 3px var(--a-bg)}
+  .row{display:flex;gap:9px;align-items:flex-end;margin-top:10px}
+  button{font:inherit;font-size:13px;font-weight:600;padding:9px 15px;border-radius:10px;border:.5px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;transition:all .12s;white-space:nowrap}
+  button:hover{border-color:var(--line);background:var(--line2)}
+  button:active{transform:translateY(.5px)}
+  button.go{background:var(--a);border-color:var(--a);color:#fff}
+  button.go:hover{filter:brightness(1.05)}
+  .wstatus{font-size:12px;color:var(--muted);margin-top:12px;display:flex;align-items:center;gap:7px}
+  .wstatus .d{width:7px;height:7px;border-radius:50%;background:#cfccc4;flex-shrink:0}
+  .wstatus.on{color:var(--a-ink)}.wstatus.on .d{background:var(--a);box-shadow:0 0 0 3px var(--a-bg)}
+  /* Chat */
+  .chat{display:flex;flex-direction:column;min-height:560px;overflow:hidden}
+  .chead{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:.5px solid var(--line)}
+  .chead .ci{width:30px;height:30px;border-radius:9px;background:var(--a-bg);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .chead .ct{font-size:13.5px;font-weight:600}
+  .chead .cs{margin-left:auto;font-size:11.5px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+  .chead .cs .d{width:7px;height:7px;border-radius:50%;background:#cfccc4}
+  .chead .cs.run{color:var(--a-ink)}.chead .cs.run .d{background:var(--a);animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .log{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px;background:linear-gradient(#fbfaf8,#fbfaf8)}
+  .b{max-width:82%;font-size:13.5px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}
+  .b.agent{align-self:flex-start;background:#fff;border:.5px solid var(--line);border-radius:4px 16px 16px 16px;padding:11px 14px;box-shadow:var(--shadow)}
+  .b.you{align-self:flex-end;background:var(--a);color:#fff;border-radius:16px 16px 4px 16px;padding:11px 14px}
+  .b.tool{align-self:flex-start;max-width:88%;font-family:ui-monospace,"SF Mono",monospace;font-size:11.5px;color:#185FA5;background:#eef4fb;border:.5px solid #dce8f6;border-radius:9px;padding:7px 11px}
+  .b.tres{align-self:flex-start;max-width:88%;font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);background:var(--line2);border-radius:9px;padding:7px 11px;white-space:pre-wrap}
+  .b.err{align-self:flex-start;color:#A32D2D;background:#FCEBEB;border:.5px solid #F3C9C9;border-radius:10px;padding:9px 13px;font-size:12.5px}
+  .starters{padding:14px 18px;border-top:.5px solid var(--line);display:flex;flex-wrap:wrap;gap:8px}
+  .starters button{font-size:12px;font-weight:500;padding:7px 12px;border-radius:99px;border:.5px solid var(--line);background:#fff;color:var(--ink2);max-width:100%;text-align:left}
+  .starters button:hover{border-color:var(--a);color:var(--a-ink);background:var(--a-bg)}
+  .composer{display:flex;gap:10px;padding:14px 18px;border-top:.5px solid var(--line)}
+  .composer input{flex:1;padding:11px 14px;border-radius:12px}
+  .composer .send{padding:11px 20px;background:var(--a);border-color:var(--a);color:#fff;border-radius:12px;display:inline-flex;align-items:center;gap:7px}
+  .composer .send:hover{filter:brightness(1.05)}
+  .composer .send:disabled{opacity:.5;cursor:default}
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="/">&larr; <span class="brand"><span class="m">M</span><span class="n">N</span>&amp;<span class="j">J</span> Labs</span></a>
+  <span class="sep"></span><span style="font-size:13.5px;font-weight:500;color:var(--muted)">Agent Console</span>
+  <select id="pick"></select>
+</header>
+
+<div class="wrap">
+  <div>
+    <div class="card persona">
+      <div class="frame" id="frame"></div>
+      <div class="pname" id="pname">…</div>
+      <div class="ptag" id="ptag"></div>
+      <div class="pbadge"><span class="pdot"></span> AGENT · runs autonomously</div>
+      <div class="pwired" id="pwired"></div>
+    </div>
+
+    <div class="card wcard">
+      <div class="sect"><span class="g"></span> General · autonomous watch</div>
+      <div class="hint">Point the agent at a file. When you write instructions into it, the agent runs them on its own (read-only / non-destructive), writes a <code>.report.md</code> beside it, and logs the run.</div>
+      <label>Instructions file (absolute path)</label>
+      <input id="w-file" placeholder="C:\claude\generic\general\instructions.txt">
+      <div class="row">
+        <div style="flex:1"><label>Check every (seconds)</label><input id="w-int" type="number" value="60" min="10"></div>
+        <button id="w-start" class="go">Start</button>
+        <button id="w-stop">Stop</button>
+      </div>
+      <div class="wstatus" id="w-status"><span class="d"></span> watch: off</div>
+    </div>
+  </div>
+
+  <div class="card chat">
+    <div class="chead">
+      <span class="ci" id="c-ci">🤖</span>
+      <span class="ct" id="c-ct">Agent</span>
+      <span class="cs" id="c-status"><span class="d"></span> idle</span>
+    </div>
+    <div class="log" id="log"></div>
+    <div class="starters" id="starters"></div>
+    <div class="composer">
+      <input id="in" placeholder="Tell the agent what to do…" autocomplete="off">
+      <button id="send" class="send">Send &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ACCENT = {
+  "naum":         { a:"#C98A16", ink:"#5C3D02", bg:"#FBF1DA", ci:"👔", wired:"Full access: the <b>whole workforce</b> — engineering, DevOps, DBA, QA + the business org" },
+  "vadim":        { a:"#2E8B8B", ink:"#0C3B3B", bg:"#DEF0EF", ci:"🧭", wired:"Free consultant under <b>Naum</b> — advisory (read-only); reviews, second opinions, risk" },
+  "interviewer":  { a:"#7A5AF5", ink:"#2C1E63", bg:"#EBE7FD", ci:"🎤", wired:"Mock interviews & drills — one question at a time, scored honestly, with a focus list" },
+  "devops-agent": { a:"#EF9F27", ink:"#633806", bg:"#FDF4E3", ci:"☁️", wired:"Wired to: <b>AWS CLI</b> (ECS · Lambda · RDS · S3 · ALB · Route 53)" },
+  "dba-agent":    { a:"#0F6E56", ink:"#04342C", bg:"#E1F5EE", ci:"🗄️", wired:"Wired to: <b>psql</b> + <b>mongosh</b> (local) and <b>RDS / Atlas</b>" },
+  "qa-agent":     { a:"#1D9E75", ink:"#04342C", bg:"#E1F5EE", ci:"🧪", wired:"Wired to: <b>mvn / pytest / curl</b> + the <b>browser</b> for E2E" },
+};
+const qs = new URLSearchParams(location.search);
+let AGENTS = [], current = qs.get("a") || "devops-agent";
+const $ = id => document.getElementById(id);
+
+async function loadAgents(){
+  try { AGENTS = await (await fetch("/agents")).json(); }
+  catch(e){ $("log").innerHTML = '<div class="b err">Could not reach the server. Is <code>node server.js</code> running? Try restarting it to load the agent endpoints.</div>'; return; }
+  const pick = $("pick"); pick.innerHTML = "";
+  AGENTS.forEach(a => { const o=document.createElement("option"); o.value=a.key; o.textContent=a.title; pick.appendChild(o); });
+  if(!AGENTS.find(a=>a.key===current)) current = AGENTS[0] && AGENTS[0].key;
+  pick.value = current;
+  pick.onchange = () => { current=pick.value; history.replaceState(null,"","?a="+current); renderPersona(); };
+  renderPersona(); refreshWatch();
+  const q = qs.get("q");
+  if(q){ $("in").value = q; if(qs.get("go")) send(); else $("in").focus(); }   // prefill from a deep link; &go=1 auto-starts (e.g. Interview Studio)
+}
+function renderPersona(){
+  const a = AGENTS.find(x=>x.key===current); if(!a) return;
+  const ac = ACCENT[a.key] || ACCENT["devops-agent"];
+  document.documentElement.style.setProperty("--a", ac.a);
+  document.documentElement.style.setProperty("--a-ink", ac.ink);
+  document.documentElement.style.setProperty("--a-bg", ac.bg);
+  $("pname").textContent = a.title; $("ptag").textContent = a.tagline;
+  $("pwired").innerHTML = ac.wired;
+  $("c-ci").textContent = ac.ci; $("c-ct").textContent = a.title;
+  // avatar: 3D glb if present, else image, else emoji
+  const frame = $("frame"), glb = "/avatars/"+a.key+".glb";
+  fetch(glb,{method:"HEAD"}).then(r=>{
+    if(r.ok){ frame.innerHTML = '<model-viewer class="av" src="'+glb+'" camera-controls autoplay disable-zoom interaction-prompt="none" exposure="1.05" shadow-intensity="0.4"></model-viewer>'; }
+    else { frame.innerHTML = '<img class="av" src="'+a.avatar+'" alt="'+a.title+'" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'av emoji\',textContent:ACCENTCI()}))">'; }
+  }).catch(()=>{ frame.innerHTML = '<div class="av emoji">'+ac.ci+'</div>'; });
+  window.ACCENTCI = ()=>ac.ci;
+  $("log").innerHTML = ""; addBubble(a.greeting,"agent");
+  const st=$("starters"); st.innerHTML="";
+  (a.starters||[]).forEach(s=>{ const b=document.createElement("button"); b.textContent=(s.length>64?s.slice(0,62)+"…":s); b.title=s; b.onclick=()=>{ $("in").value=s; $("in").focus(); }; st.appendChild(b); });
+}
+function addBubble(text,cls){ const d=document.createElement("div"); d.className="b "+cls; d.textContent=text; $("log").appendChild(d); $("log").scrollTop=$("log").scrollHeight; return d; }
+
+let busy=false, streamNode=null;
+function setStatus(t,run){ const s=$("c-status"); s.innerHTML='<span class="d"></span> '+t; s.className="cs"+(run?" run":""); }
+async function send(){
+  const text=$("in").value.trim(); if(!text||busy) return;
+  $("in").value=""; addBubble(text,"you"); busy=true; streamNode=null; $("send").disabled=true; setStatus("working…",true);
+  try{
+    const res=await fetch("/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:current,prompt:text})});
+    const reader=res.body.getReader(), dec=new TextDecoder(); let buf="";
+    while(true){ const {value,done}=await reader.read(); if(done) break; buf+=dec.decode(value,{stream:true});
+      let i; while((i=buf.indexOf("\n\n"))>=0){ const c=buf.slice(0,i); buf=buf.slice(i+2); handle(c); } }
+  }catch(e){ addBubble("connection error: "+e.message,"err"); }
+  busy=false; $("send").disabled=false; setStatus("idle",false);
+}
+function handle(chunk){
+  const ev=(chunk.match(/^event: (.+)$/m)||[])[1]; const dm=chunk.match(/^data: (.+)$/m); if(!dm) return;
+  let d; try{ d=JSON.parse(dm[1]); }catch{ return; }
+  if(ev==="text"){ if(!streamNode) streamNode=addBubble("","agent"); streamNode.textContent+=d; $("log").scrollTop=$("log").scrollHeight; }
+  else if(ev==="tool"){ streamNode=null; addBubble("⚒ "+d.name+"   "+JSON.stringify(d.input).slice(0,180),"tool"); }
+  else if(ev==="tool_result"){ addBubble("↳ "+String(d.output).slice(0,500),"tres"); }
+  else if(ev==="error"){ streamNode=null; addBubble("error: "+d.message,"err"); }
+}
+$("send").onclick=send; $("in").addEventListener("keydown",e=>{ if(e.key==="Enter") send(); });
+
+async function refreshWatch(){
+  try{ const s=await (await fetch("/watch/status")).json();
+    if(s.cfg){ if(!$("w-file").value) $("w-file").value=s.cfg.file; $("w-int").value=s.cfg.intervalSec; }
+    const el=$("w-status");
+    el.innerHTML='<span class="d"></span> '+(s.running ? ("watch: ON — "+(s.cfg?s.cfg.agent:"")+" · every "+(s.cfg?s.cfg.intervalSec:"?")+"s"+(s.busy?" · running now":"")+(s.lastRun?" · last "+new Date(s.lastRun.started).toLocaleTimeString():"")) : "watch: off");
+    el.className="wstatus"+(s.running?" on":"");
+  }catch{}
+}
+$("w-start").onclick=async()=>{ const body={agent:current,file:$("w-file").value.trim(),intervalSec:Number($("w-int").value)||60,enabled:true};
+  if(!body.file){ $("w-status").innerHTML='<span class="d"></span> enter a file path first'; return; }
+  await fetch("/watch/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); refreshWatch(); };
+$("w-stop").onclick=async()=>{ await fetch("/watch/stop",{method:"POST"}); refreshWatch(); };
+setInterval(refreshWatch,5000);
+
+loadAgents();
+</script>
+</body>
+</html>

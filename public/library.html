@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MN&J Labs — 3D Library</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  :root{
+    --bg:#0d0c14; --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.028);
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.055);
+    --ink:#f4f2ee; --ink2:#c3bfd4; --muted:#8b87a3;
+    --clay:#FF7A4A; --gold:#FFB43D; --purple:#8B82F5; --ok:#3DD9A4; --blue:#5AB0FF;
+    --glow:0 0 0 .5px rgba(255,255,255,.07), 0 10px 40px -12px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .ic{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;
+      stroke-linecap:round;stroke-linejoin:round;display:block}
+
+  .aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .aurora b{position:absolute;display:block;border-radius:50%;filter:blur(95px);opacity:.4}
+  .aurora .b1{width:620px;height:620px;background:#534AB7;top:-250px;left:-130px;animation:d1 26s ease-in-out infinite}
+  .aurora .b2{width:520px;height:520px;background:#D85A30;top:-150px;right:-150px;opacity:.25;animation:d2 30s ease-in-out infinite}
+  @keyframes d1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(80px,60px) scale(1.14)}}
+  @keyframes d2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,70px) scale(1.1)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 0);background-size:3px 3px}
+  .shell{position:relative;z-index:2}
+
+  header{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:.5px solid var(--line);
+    background:rgba(13,12,20,.7);backdrop-filter:blur(18px) saturate(160%);position:sticky;top:0;z-index:20}
+  header .home{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;
+    display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  header .home:hover{color:var(--ink)}
+  header .home .ic{width:15px;height:15px}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .brand .m{color:var(--clay)}.brand .n{color:var(--gold)}.brand .j{color:var(--purple)}
+  header .sep{width:1px;height:16px;background:var(--line)}
+  header .tag{font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap}
+  header .count{margin-left:auto;font-size:11.5px;color:var(--purple);padding:5px 12px;border-radius:99px;
+    background:rgba(139,130,245,.1);border:.5px solid rgba(139,130,245,.28);white-space:nowrap}
+  @media(max-width:700px){header .tag,header .sep{display:none}}
+
+  .wrap{max-width:1340px;margin:0 auto;padding:22px 24px 60px;display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
+  @media(max-width:1000px){.wrap{grid-template-columns:1fr}}
+
+  /* stage */
+  .stage{position:sticky;top:78px;background:var(--panel);border:.5px solid var(--line);border-radius:20px;
+    overflow:hidden;box-shadow:var(--glow)}
+  .stage .canvas{position:relative;height:520px;
+    background:radial-gradient(120% 100% at 50% 0%,rgba(139,130,245,.16),transparent 62%),#0a0910}
+  .stage model-viewer{width:100%;height:100%;background:transparent;--poster-color:transparent}
+  .stage .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;color:var(--muted)}
+  .bar{display:flex;align-items:center;gap:10px;padding:13px 16px;border-top:.5px solid var(--line);flex-wrap:wrap}
+  .bar .nm{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .bar .sb{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .bar .acts{margin-left:auto;display:flex;gap:7px}
+  .btn{font:inherit;font-size:12px;font-weight:600;padding:8px 13px;border-radius:9px;border:.5px solid var(--line);
+    background:rgba(255,255,255,.05);color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+    text-decoration:none;transition:all .15s}
+  .btn:hover{border-color:var(--purple);color:var(--ink);background:rgba(139,130,245,.14)}
+  .btn.on{background:var(--purple);border-color:var(--purple);color:#fff}
+  .btn .ic{width:13px;height:13px}
+  .meta{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 14px}
+  .chip{font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.06);
+    border:.5px solid var(--line2);color:var(--ink2)}
+
+  /* list */
+  .side h2{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);
+    margin:4px 0 10px;display:flex;align-items:center;gap:9px}
+  .side h2 .ln{flex:1;height:.5px;background:var(--line)}
+  .side h2:not(:first-child){margin-top:22px}
+  .item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:13px;cursor:pointer;
+    background:var(--panel);border:.5px solid var(--line);margin-bottom:8px;transition:all .16s;width:100%;
+    text-align:left;font:inherit;color:var(--ink)}
+  .item:hover{transform:translateX(3px);border-color:rgba(255,255,255,.22)}
+  .item.on{border-color:var(--ac);background:rgba(255,255,255,.08)}
+  .item.on .bx{box-shadow:0 0 15px -3px var(--ac)}
+  .item .bx{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;background:var(--acbg);color:var(--ac)}
+  .item .bx .ic{width:18px;height:18px}
+  .item .g{flex:1;min-width:0}
+  .item .n{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .d{font-size:10.5px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .sz{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace;flex-shrink:0}
+
+  .note{max-width:1340px;margin:0 auto;padding:0 24px 60px}
+  .note .box{background:rgba(255,255,255,.04);border:.5px solid var(--line);border-radius:16px;padding:18px 22px}
+  .note h3{font-size:13.5px;font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:9px}
+  .note h3 .ic{width:16px;height:16px;color:var(--purple)}
+  .note p{font-size:12.5px;color:var(--ink2);line-height:1.65;margin:0 0 9px}
+  .note code{font-family:ui-monospace,monospace;font-size:11.5px;background:rgba(0,0,0,.35);
+    border:.5px solid var(--line);border-radius:8px;padding:9px 12px;display:block;color:#c9c4f5;
+    margin:8px 0;word-break:break-all;cursor:pointer}
+  .note code:hover{border-color:var(--purple)}
+  .copied{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#8B82F5;color:#0d0c14;
+    font-size:12.5px;font-weight:700;padding:9px 18px;border-radius:99px;z-index:99}
+</style>
+</head>
+<body>
+<div class="aurora"><b class="b1"></b><b class="b2"></b></div>
+<div class="grain"></div>
+
+<div class="shell">
+<header>
+  <a class="home" href="/"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg>
+    <span class="brand"><span class="m">M</span><span class="n">N</span>&amp;<span class="j">J</span> Labs</span></a>
+  <span class="sep"></span><span class="tag">3D Library</span>
+  <span class="count" id="count"></span>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="canvas" id="canvas"><div class="msg">select a model</div></div>
+    <div class="bar">
+      <div><div class="nm" id="curName">—</div><div class="sb" id="curDesc"></div></div>
+      <div class="acts">
+        <button class="btn on" id="spin"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 1-9 9M3 3v5h5"/></svg> Spin</button>
+        <button class="btn" id="reset"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9M12 7v5l3 2"/></svg> Reset</button>
+        <a class="btn" id="dl" href="#" download><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 20h16"/></svg> Download</a>
+      </div>
+    </div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="side" id="side"></div>
+</div>
+
+<div class="note">
+  <div class="box">
+    <h3><svg class="ic" viewBox="0 0 24 24"><path d="M12 16v-4M12 8h.01M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18"/></svg> Adding a model to the library</h3>
+    <p><b>1.</b> Generate it (Tripo / Meshy) and download the <code style="display:inline;padding:1px 6px">.glb</code>.</p>
+    <p><b>2.</b> Compress it — raw generations are 40–60&nbsp;MB and will choke a browser. <b>Quantize</b> is the right
+       codec here: it decodes natively, unlike draco/meshopt which need an extra decoder the preview browser blocks.</p>
+    <code onclick="cp(this)" title="click to copy">npx @gltf-transform/cli optimize "IN.glb" "OUT.glb" --compress quantize --simplify-error 0.004 --texture-size 1024</code>
+    <p><b>3.</b> Drop it in <code style="display:inline;padding:1px 6px">public/models/</code> (or
+       <code style="display:inline;padding:1px 6px">public/avatars/</code> for an agent persona) and add one line to the
+       <code style="display:inline;padding:1px 6px">MODELS</code> array in this page.</p>
+    <p style="color:var(--muted);margin-top:12px">Typical result: <b>60&nbsp;MB → ~600&nbsp;KB</b> (99% smaller) with no visible quality loss at display size.</p>
+  </div>
+</div>
+</div>
+
+<script>
+const P = {
+  robot:'M12 3v2M9 12v2M15 12v2M7 8h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM3 13v2M21 13v2',
+  user:'M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
+  cloud:'M6.66 18A4.5 4.5 0 0 1 6.66 9a5 5 0 0 1 9.12 1.28h.99a3.49 3.49 0 0 1 0 6.97H6.66M12 13.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3',
+  db:'M12 3c4.42 0 8 1.34 8 3s-3.58 3-8 3s-8-1.34-8-3s3.58-3 8-3M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6',
+  shield:'M11.46 20.85A12 12 0 0 1 3.5 6.74a12 12 0 0 0 8.5-3.04a12 12 0 0 0 8.5 3.04a12 12 0 0 1-.09 7.06M15 19l2 2l4-4',
+  compass:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18M15.5 8.5l-2 5l-5 2l2-5z',
+  case:'M4 8h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM9 8V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3',
+  dash:'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-4H4z',
+  sword:'M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2',
+};
+const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]||''}"/></svg>`;
+
+/* ── the library. Add a line here after dropping a compressed .glb in. ── */
+const MODELS = [
+  { group:'Characters', name:'Medieval Knight', file:'/models/knight.glb', icon:'sword',
+    ac:'#C0C6D4', desc:'Plate-armour knight — Tripo', tags:['static','4.5k tris','Tripo'] },
+  { group:'Characters', name:'Dashboard Scene', file:'/models/dashboard.glb', icon:'dash',
+    ac:'#8B82F5', desc:'Michael + robot at a board — Command Center hero', tags:['static','6.8k tris','Meshy'] },
+
+  { group:'Team', name:'Michael', file:'/michael.glb', icon:'user',
+    ac:'#FF7A4A', desc:'Human · senior backend engineer', tags:['company home'] },
+  { group:'Team', name:'Joseph', file:'/joseph.glb', icon:'robot',
+    ac:'#8B82F5', desc:'AI team lead', tags:['company home'] },
+  { group:'Team', name:'Naum', file:'/avatars/naum.glb', icon:'case',
+    ac:'#F5B133', desc:'CBO · business robot', tags:['agent console'] },
+  { group:'Team', name:'Vadim', file:'/avatars/vadim.glb', icon:'compass',
+    ac:'#2E8B8B', desc:'External consultant · advisory', tags:['agent console'] },
+
+  { group:'Agents', name:'DevOps Agent', file:'/avatars/devops-agent.glb', icon:'cloud',
+    ac:'#FFB43D', desc:'Cloud & infra', tags:['agent console'] },
+  { group:'Agents', name:'DBA Agent', file:'/avatars/dba-agent.glb', icon:'db',
+    ac:'#3DD9A4', desc:'Databases', tags:['agent console'] },
+  { group:'Agents', name:'QA Agent', file:'/avatars/qa-agent.glb', icon:'shield',
+    ac:'#5AB0FF', desc:'Testing & quality', tags:['agent console'] },
+];
+
+const $ = id => document.getElementById(id);
+let current = null, spinning = true;
+
+function fmt(b){ return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.round(b/1024)+' KB'; }
+
+function render(){
+  const groups = [...new Set(MODELS.map(m => m.group))];
+  $('side').innerHTML = groups.map(g => `
+    <h2>${g} <span class="ln"></span></h2>
+    ${MODELS.filter(m => m.group === g).map((m,i) => {
+      const idx = MODELS.indexOf(m);
+      return `<button class="item" data-i="${idx}" style="--ac:${m.ac};--acbg:${m.ac}22">
+        <span class="bx">${ic(m.icon)}</span>
+        <span class="g"><span class="n">${m.name}</span><span class="d">${m.desc}</span></span>
+        <span class="sz" id="sz-${idx}">…</span></button>`;
+    }).join('')}`).join('');
+
+  document.querySelectorAll('.item').forEach(b => b.onclick = () => select(+b.dataset.i));
+  $('count').textContent = MODELS.length + ' models';
+
+  // real file sizes, fetched live
+  MODELS.forEach((m, i) => {
+    fetch(m.file, { method:'HEAD' })
+      .then(r => { const L = r.headers.get('content-length');
+                   const el = $('sz-'+i); if (el) el.textContent = L ? fmt(+L) : '—'; })
+      .catch(() => { const el = $('sz-'+i); if (el) el.textContent = '—'; });
+  });
+}
+
+function select(i){
+  current = i;
+  const m = MODELS[i];
+  document.querySelectorAll('.item').forEach(b => b.classList.toggle('on', +b.dataset.i === i));
+  $('curName').textContent = m.name;
+  $('curDesc').textContent = m.group + ' · ' + m.desc;
+  $('dl').href = m.file;
+  $('dl').setAttribute('download', m.file.split('/').pop());
+  $('meta').innerHTML = m.tags.map(t => `<span class="chip">${t}</span>`).join('') +
+                        `<span class="chip">${m.file}</span>`;
+  $('canvas').innerHTML =
+    `<div class="msg" id="msg">loading…</div>
+     <model-viewer id="mv" src="${m.file}" loading="eager" camera-controls disable-zoom
+        ${spinning ? 'auto-rotate auto-rotate-delay="400" rotation-per-second="22deg"' : ''}
+        interaction-prompt="none" exposure="1.15" shadow-intensity="0.5" field-of-view="32deg"></model-viewer>`;
+  const mv = $('mv');
+  mv.addEventListener('load', () => { const el = $('msg'); if (el) el.remove(); });
+  mv.addEventListener('error', () => { const el = $('msg'); if (el) el.textContent = 'could not load this model'; });
+}
+
+$('spin').onclick = () => {
+  spinning = !spinning;
+  $('spin').classList.toggle('on', spinning);
+  if (current !== null) select(current);
+};
+$('reset').onclick = () => { if (current !== null) select(current); };
+function cp(el){
+  navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+    const n = document.createElement('div'); n.className = 'copied'; n.textContent = 'copied ✓';
+    document.body.appendChild(n); setTimeout(() => n.remove(), 1200);
+  }).catch(() => {});
+}
+
+render();
+select(0);
+</script>
+</body>
+</html>

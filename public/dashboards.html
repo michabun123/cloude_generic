@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MN&J Labs — Command Center</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  :root{
+    --bg:#0d0c14; --bg2:#12111c;
+    --panel:rgba(255,255,255,.045); --panel2:rgba(255,255,255,.028);
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.055);
+    --ink:#f4f2ee; --ink2:#c3bfd4; --muted:#8b87a3;
+    --clay:#FF7A4A; --gold:#FFB43D; --purple:#8B82F5;
+    --ok:#3DD9A4; --blue:#5AB0FF; --warn:#FFC168; --red:#FF6B6B;
+    --glow:0 0 0 .5px rgba(255,255,255,.07), 0 10px 40px -12px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+  /* icons */
+  .ic{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;
+      stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+
+  /* ---------- aurora backdrop ---------- */
+  .aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .aurora b{position:absolute;display:block;border-radius:50%;filter:blur(90px);opacity:.5}
+  .aurora .b1{width:620px;height:620px;background:#D85A30;top:-220px;left:-120px;animation:drift1 22s ease-in-out infinite}
+  .aurora .b2{width:560px;height:560px;background:#534AB7;top:-140px;right:-160px;animation:drift2 26s ease-in-out infinite}
+  .aurora .b3{width:520px;height:520px;background:#EF9F27;bottom:-260px;left:34%;opacity:.28;animation:drift3 30s ease-in-out infinite}
+  @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(90px,60px) scale(1.14)}}
+  @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-80px,80px) scale(1.1)}}
+  @keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,-70px) scale(1.18)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(255,255,255,.055) 1px,transparent 0);background-size:3px 3px}
+  .shell{position:relative;z-index:2}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:14px;padding:14px 24px;
+    border-bottom:.5px solid var(--line);background:rgba(13,12,20,.66);backdrop-filter:blur(18px) saturate(160%);
+    position:sticky;top:0;z-index:20}
+  header .home{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;transition:color .15s;
+    white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+  header .home:hover{color:var(--ink)}
+  header .home .ic{width:15px;height:15px}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .brand .m{color:var(--clay)}.brand .n{color:var(--gold)}.brand .j{color:var(--purple)}
+  header .sep{width:1px;height:16px;background:var(--line)}
+  header .tag{font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap}
+  header .live{margin-left:auto;font-size:11.5px;color:var(--ok);display:inline-flex;align-items:center;gap:7px;
+    padding:5px 12px;border-radius:99px;background:rgba(61,217,164,.09);border:.5px solid rgba(61,217,164,.22);white-space:nowrap}
+  header .live .d{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 9px var(--ok);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+  @media(max-width:760px){header .tag,header .sep{display:none} header .live{font-size:10.5px;padding:4px 9px}}
+
+  /* ---------- hero ---------- */
+  .hero{max-width:1240px;margin:0 auto;padding:30px 24px 6px;display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:center}
+  .hero h1{font-size:34px;line-height:1.12;font-weight:700;letter-spacing:-1px;margin:0 0 10px}
+  .hero h1 .grad{background:linear-gradient(100deg,var(--clay),var(--gold) 48%,var(--purple));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:14.5px;color:var(--ink2);line-height:1.65;margin:0 0 18px;max-width:52ch}
+  .stage{position:relative;height:290px;border-radius:22px;overflow:hidden;
+    background:radial-gradient(120% 100% at 50% 0%,rgba(139,130,245,.20),transparent 65%),var(--panel2);
+    border:.5px solid var(--line);box-shadow:var(--glow)}
+  .stage::after{content:"";position:absolute;inset:auto 0 0 0;height:70px;
+    background:linear-gradient(to top,rgba(13,12,20,.7),transparent);pointer-events:none}
+  .stage model-viewer{width:100%;height:100%;background:transparent;--poster-color:transparent}
+  .stage .hint{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:10.5px;color:var(--muted);z-index:3;letter-spacing:.3px}
+  .stage .load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+  @media(max-width:900px){.hero{grid-template-columns:1fr}.stage{height:230px}.hero h1{font-size:27px}}
+
+  /* ---------- KPI strip ---------- */
+  .kpis{max-width:1240px;margin:0 auto;padding:14px 24px 4px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .kpi{position:relative;padding:15px 17px;border-radius:16px;background:var(--panel);
+    border:.5px solid var(--line);backdrop-filter:blur(10px);overflow:hidden;transition:transform .2s,border-color .2s}
+  .kpi:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18)}
+  .kpi::before{content:"";position:absolute;top:0;left:14px;right:14px;height:1px;
+    background:linear-gradient(90deg,transparent,var(--ac),transparent);opacity:.85}
+  .kpi .k{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .kpi .k .ic{width:15px;height:15px;color:var(--ac)}
+  .kpi .v{font-size:27px;font-weight:700;letter-spacing:-.8px;line-height:1;font-variant-numeric:tabular-nums}
+  .kpi .u{font-size:12px;color:var(--muted);font-weight:500;margin-left:3px}
+  .kpi .spark{margin-top:9px;height:22px;display:block;width:100%}
+
+  /* ---------- layout ---------- */
+  .wrap{display:grid;grid-template-columns:236px 1fr;gap:22px;padding:22px 24px 60px;max-width:1240px;margin:0 auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .nav{display:flex;flex-direction:column;gap:7px;position:sticky;top:78px;align-self:start}
+  @media(max-width:900px){.nav{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}}
+  .nav button{display:flex;align-items:center;gap:11px;font:inherit;font-size:13.5px;font-weight:600;text-align:left;
+    padding:11px 13px;border-radius:14px;border:.5px solid transparent;background:transparent;color:var(--ink2);
+    cursor:pointer;transition:all .18s;white-space:nowrap}
+  .nav button:hover{background:var(--panel2);color:var(--ink)}
+  .nav button.on{background:var(--panel);border-color:var(--line);color:var(--ink);box-shadow:var(--glow)}
+  .nav button.on .box{box-shadow:0 0 16px -2px var(--ac)}
+  .nav .box{width:31px;height:31px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    background:var(--acbg);color:var(--ac);transition:box-shadow .2s}
+  .nav .box .ic{width:16px;height:16px}
+  .nav .sub{font-size:11px;color:var(--muted);font-weight:400;display:block;margin-top:1px}
+
+  /* ---------- view ---------- */
+  .view{min-width:0}
+  .vh{font-size:21px;font-weight:700;letter-spacing:-.5px;margin:0 0 4px}
+  .vs{font-size:13.5px;color:var(--muted);margin:0 0 18px}
+  .fx>*{animation:rise .45s cubic-bezier(.2,.7,.3,1) backwards}
+  .fx>*:nth-child(1){animation-delay:.02s}.fx>*:nth-child(2){animation-delay:.07s}
+  .fx>*:nth-child(3){animation-delay:.12s}.fx>*:nth-child(4){animation-delay:.17s}
+  .fx>*:nth-child(5){animation-delay:.22s}.fx>*:nth-child(6){animation-delay:.27s}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  .card{position:relative;background:var(--panel);border:.5px solid var(--line);border-radius:18px;padding:17px 19px;
+    margin:0 0 13px;backdrop-filter:blur(10px);transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.16)}
+  .card h3{font-size:13.5px;font-weight:700;margin:0 0 13px;display:flex;align-items:center;gap:9px;letter-spacing:-.1px}
+  .card h3 .ic{width:17px;height:17px;color:var(--ac,var(--muted))}
+  .card h3 .r{margin-left:auto;font-weight:500}
+  .row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;font-size:13px;border-bottom:.5px solid var(--line2);align-items:center}
+  .row:last-child{border-bottom:0}
+  .row .k{color:var(--muted);flex-shrink:0}
+  .row .v{text-align:right;font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px;color:var(--ink2);line-height:1.55}
+  .row a{color:var(--blue);text-decoration:none}.row a:hover{text-decoration:underline}
+  code{background:rgba(255,255,255,.08);padding:1.5px 6px;border-radius:5px;font-size:11.5px}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;
+    letter-spacing:.3px;white-space:nowrap}
+  .pill.ok{background:rgba(61,217,164,.13);color:var(--ok);border:.5px solid rgba(61,217,164,.28)}
+  .pill.blue{background:rgba(90,176,255,.13);color:var(--blue);border:.5px solid rgba(90,176,255,.28)}
+  .pill.warn{background:rgba(255,193,104,.13);color:var(--warn);border:.5px solid rgba(255,193,104,.28)}
+  .pill.red{background:rgba(255,107,107,.13);color:var(--red);border:.5px solid rgba(255,107,107,.28)}
+  .pill.mut{background:rgba(255,255,255,.07);color:var(--muted);border:.5px solid var(--line)}
+
+  .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:7px}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--ac),var(--gold));
+    width:0;animation:fill 1.1s cubic-bezier(.2,.8,.3,1) forwards}
+  @keyframes fill{to{width:var(--w)}}
+
+  .proj{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:13px}
+  .pcard{position:relative;background:var(--panel);border:.5px solid var(--line);border-radius:18px;padding:17px 18px;
+    display:flex;flex-direction:column;backdrop-filter:blur(10px);overflow:hidden;transition:transform .22s,border-color .22s}
+  .pcard:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.2)}
+  .pcard::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac);opacity:.75}
+  .pcard .ph{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+  .pcard .pi{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;background:var(--acbg);color:var(--ac)}
+  .pcard .pi .ic{width:19px;height:19px}
+  .pcard .pn{font-size:14.5px;font-weight:700;letter-spacing:-.2px}
+  .pcard .pt{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .pcard .pd{font-size:12.5px;color:var(--ink2);line-height:1.6;margin:0 0 12px;flex:1}
+  .stack{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 12px}
+  .stack span{font-size:10.5px;background:rgba(255,255,255,.07);color:var(--ink2);padding:3px 8px;border-radius:7px;
+    border:.5px solid var(--line2)}
+  .plink{font-size:12px;color:var(--blue);text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600}
+  .plink .ic{width:14px;height:14px}
+  .plink:hover{text-decoration:underline}
+  .loc{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;display:flex;align-items:center;gap:6px;margin:3px 0}
+  .loc .ic{width:13px;height:13px}
+  /* Under Development */
+  .wl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink2);text-decoration:none;
+      padding:7px 12px;border-radius:9px;background:rgba(255,255,255,.06);border:.5px solid var(--line);transition:all .15s}
+  .wl:hover{border-color:var(--ac);color:var(--ink);background:rgba(255,255,255,.1)}
+  .wl .ic{width:14px;height:14px;color:var(--ac)}
+  .wreq{width:100%;font:inherit;font-size:12.5px;padding:10px 12px;border-radius:10px;border:.5px solid var(--line);
+        background:rgba(255,255,255,.04);color:var(--ink);resize:vertical;min-height:60px}
+  .wreq:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
+  .wreq::placeholder{color:var(--muted)}
+  .wsend{margin-top:9px;font:inherit;font-size:12.5px;font-weight:700;padding:9px 16px;border-radius:10px;border:0;
+         background:var(--ac);color:#0d0c14;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .wsend:hover{filter:brightness(1.08)}
+  .wsend .ic{width:14px;height:14px}
+  .cmd{margin:5px 0}
+  .cmd .cl{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+  .cmd code{display:block;font-family:ui-monospace,monospace;font-size:11.5px;color:#c9f5e6;background:rgba(0,0,0,.35);
+    border:.5px solid var(--line);border-radius:8px;padding:8px 11px;cursor:pointer;word-break:break-all;transition:border-color .15s}
+  .cmd code:hover{border-color:var(--ac)}
+  .kv{display:flex;gap:12px;padding:6px 0;border-bottom:.5px solid var(--line2);align-items:baseline}
+  .kv .kk{flex:0 0 132px;font-size:11.5px;color:var(--muted)}
+  .kv .vv{flex:1;font-size:12px;color:var(--ink2);word-break:break-all;text-decoration:none}
+  .kv a.vv{color:var(--blue)} .kv a.vv:hover{text-decoration:underline}
+  .kv code.vv{font-family:ui-monospace,monospace;cursor:pointer;background:rgba(255,255,255,.06);padding:3px 7px;border-radius:6px}
+  .kv code.vv:hover{background:rgba(255,255,255,.12);color:var(--ink)}
+  .hint{font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:9px;padding:9px 11px;
+    background:rgba(255,255,255,.04);border-left:2px solid var(--ac);border-radius:0 8px 8px 0}
+  .copied{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#3DD9A4;color:#04231b;
+    font-size:12.5px;font-weight:700;padding:9px 18px;border-radius:99px;z-index:99;box-shadow:0 8px 26px -8px rgba(0,0,0,.8)}
+  /* infra tiles — compact, click to expand */
+  .infra{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:12px;margin:0 0 14px}
+  .itile{background:var(--panel);border:.5px solid var(--line);border-radius:15px;padding:13px 14px;cursor:pointer;
+    backdrop-filter:blur(10px);transition:transform .18s,border-color .18s;position:relative;overflow:hidden}
+  .itile:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.24)}
+  .itile.open{border-color:var(--ac)}
+  .itile::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac);opacity:.8}
+  .itile .ih{display:flex;align-items:center;gap:9px}
+  .itile .ib{width:31px;height:31px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;background:var(--acbg);color:var(--ac)}
+  .itile .ib .ic{width:16px;height:16px}
+  .itile .inm{font-size:12.5px;font-weight:700;letter-spacing:-.1px}
+  .itile .isb{font-size:10.5px;color:var(--muted);margin-top:1px}
+  .itile .ich{margin-left:auto;color:var(--muted);transition:transform .2s}
+  .itile .ich .ic{width:15px;height:15px}
+  .itile.open .ich{transform:rotate(180deg)}
+  .itile .imt{display:flex;align-items:center;gap:7px;margin-top:10px;flex-wrap:wrap}
+  .itile .imv{font-size:15px;font-weight:700}
+  .itile .iex{font-size:10.5px;color:var(--muted)}
+  /* Under Development tiles — same collapse behaviour as .itile, roomier when open */
+  .wipg{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px;align-items:start}
+  .wtile.open{grid-column:1/-1}
+  .wtile .idet{max-height:none}
+  .wmini{height:3px;border-radius:99px;background:rgba(255,255,255,.09);margin-top:10px;overflow:hidden}
+  .wmini i{display:block;height:100%;border-radius:99px}
+  .wact{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .wact .wsend{flex:1;min-width:130px}
+  .wsend.okb{background:#1f9d6b;color:#fff}
+  .wsend.errb{background:rgba(255,107,107,.16);color:#FF8F8F;border:.5px solid rgba(255,107,107,.5);font-size:11px}
+  .wsend:disabled{opacity:.85;cursor:default}
+  .wsend.alt{background:transparent;border:.5px solid var(--line);color:var(--ink2)}
+  .wsend.alt:hover{border-color:var(--ac);color:#fff}
+  .wattach{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px}
+  .wclip{font:inherit;font-size:11.5px;font-weight:600;border:.5px dashed var(--line);background:transparent;
+    color:var(--ink2);border-radius:9px;padding:6px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .wclip:hover{border-color:var(--ac);color:#fff}
+  .wfiles{font-size:10.5px;color:var(--muted);min-width:0}
+  .wfiles b{color:var(--ink2);font-weight:600}
+  .wclear{font:inherit;font-size:12px;border:0;background:transparent;color:var(--err);cursor:pointer;padding:0 3px}
+  .wmail{margin-top:8px;font-size:10.5px;color:var(--muted)}
+  .wmail code{cursor:pointer;color:var(--ink2)}
+  .idet{display:none;margin:12px -14px -13px;padding:12px 14px 13px;background:rgba(0,0,0,.28);border-top:.5px solid var(--line)}
+  .itile.open .idet{display:block}
+  .iwarn{margin-top:10px;font-size:10.5px;color:#FFC168;background:rgba(255,193,104,.1);border-left:2px solid #FFC168;
+    border-radius:0 7px 7px 0;padding:7px 9px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="aurora"><b class="b1"></b><b class="b2"></b><b class="b3"></b></div>
+<div class="grain"></div>
+
+<div class="shell">
+<header>
+  <a class="home" href="/"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg>
+    <span class="brand"><span class="m">M</span><span class="n">N</span>&amp;<span class="j">J</span> Labs</span></a>
+  <span class="sep"></span><span class="tag">Command Center</span>
+  <span class="live"><span class="d"></span> live · us-east-1 · acct 876762733422</span>
+</header>
+
+<section class="hero">
+  <div>
+    <h1>Everything we ship,<br><span class="grad">on one screen.</span></h1>
+    <p>Projects, cloud infrastructure, databases and quality — the live state of MN&amp;J Labs.
+       Humans and AI, shipping together.</p>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <span class="pill ok">2 services running</span>
+      <span class="pill blue">1 live product</span>
+      <span class="pill warn">~$35 / mo</span>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="load" id="mvload">loading 3D…</div>
+    <model-viewer id="mv" src="/models/dashboard.glb" loading="eager" camera-controls disable-zoom
+      interaction-prompt="none" exposure="1.15" shadow-intensity="0.5"
+      camera-orbit="12deg 76deg 100%" field-of-view="30deg"
+      min-camera-orbit="-55deg 55deg auto" max-camera-orbit="55deg 95deg auto"></model-viewer>
+    <div class="hint">drag to rotate</div>
+  </div>
+</section>
+
+<section class="kpis" id="kpis"></section>
+
+<div class="wrap">
+  <nav class="nav" id="nav"></nav>
+  <div class="view" id="view"></div>
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const GYM_URL = "http://gymmanger-alb-835878002.us-east-1.elb.amazonaws.com";
+
+/* ---------- inline SVG icon set (Tabler-style, 24x24 stroke) ---------- */
+const ICONS = {
+  rocket:'M4 13a8 8 0 0 1 7 7a6 6 0 0 0 3-5a9 9 0 0 0 6-8a3 3 0 0 0-3-3a9 9 0 0 0-8 6a6 6 0 0 0-5 3M7 14a6 6 0 0 0-3 6a6 6 0 0 0 6-3M15 9h.01',
+  cloud:'M6.66 18A4.5 4.5 0 0 1 6.66 9a5 5 0 0 1 9.12 1.28h.99a3.49 3.49 0 0 1 0 6.97H6.66z',
+  cloudcog:'M6.66 18A4.5 4.5 0 0 1 6.66 9a5 5 0 0 1 9.12 1.28h.99a3.49 3.49 0 0 1 0 6.97H6.66zM12 13.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3',
+  database:'M12 3c4.42 0 8 1.34 8 3s-3.58 3-8 3s-8-1.34-8-3s3.58-3 8-3M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6',
+  shield:'M11.46 20.85A12 12 0 0 1 3.5 6.74a12 12 0 0 0 8.5-3.04a12 12 0 0 0 8.5 3.04a12 12 0 0 1-.09 7.06M15 19l2 2l4-4',
+  server:'M4 4h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM4 14h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM7 7h.01M7 17h.01',
+  pulse:'M3 12h4l3 8l4-16l3 8h4',
+  filedb:'M12 10.5c2.21 0 4 .67 4 1.5s-1.79 1.5-4 1.5s-4-.67-4-1.5s1.79-1.5 4-1.5M8 12v3c0 .83 1.79 1.5 4 1.5s4-.67 4-1.5v-3M14 3v4a1 1 0 0 0 1 1h4M19 8v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7z',
+  checklist:'M9.6 20H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6M9 8h4M9 12h2M13 18l2 2l4-4',
+  barbell:'M2 12h1M9 12h6M21 12h1M6 9a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zM15 9a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1z',
+  note:'M13 20l7-7M13 20v-6a1 1 0 0 1 1-1h6V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
+  cart:'M6 19a1 1 0 1 0 0 2a1 1 0 0 0 0-2M17 19a1 1 0 1 0 0 2a1 1 0 0 0 0-2M17 17H6V3H4M6 5l14 1l-1 7H6',
+  link:'M12 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6M11 13l9-9M15 4h5v5',
+  chart:'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  alert:'M12 9v4M10.36 3.59L2.26 17.13A1.91 1.91 0 0 0 3.9 20h16.2a1.91 1.91 0 0 0 1.64-2.87L13.63 3.59a1.91 1.91 0 0 0-3.27 0zM12 17h.01',
+  leaf:'M5 21c.5-4.5 2.5-8 7-10M9 18c6.22 0 10.5-3.29 11-12V4h-4.01C7 4 4 8 4 13c0 1 0 3 2 5z',
+  table:'M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM3 10h18M10 4v16',
+  tools:'M3 21h4L20 8a1.5 1.5 0 0 0-4-4L3 17v4M14.5 5.5l4 4M12 8L7 3L3 7l5 5M16 12l5 5l-4 4l-5-5',
+  clipboard:'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2zM9 14l2 2l4-4',
+  folder:'M5 4h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  hammer:'M14 6l4 4M3 21l6-6M11.5 8.5l4 4M17 3l4 4-3.5 3.5-4-4zM13 9l-8 8 3 3 8-8',
+  eye:'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6',
+  browser:'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM2 9h20M5 7h.01M8 7h.01',
+  chevD:'M6 9l6 6 6-6',
+  send:'M4 12l16-8-6 16-2.5-6.5z',
+};
+const ico = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]||''}"/></svg>`;
+
+const AC = {
+  projects:{c:'#8B82F5', bg:'rgba(139,130,245,.14)'},
+  dev:     {c:'#FF9E6B', bg:'rgba(255,122,74,.14)'},
+  devops:  {c:'#FFB43D', bg:'rgba(255,180,61,.14)'},
+  dba:     {c:'#3DD9A4', bg:'rgba(61,217,164,.14)'},
+  qa:      {c:'#5AB0FF', bg:'rgba(90,176,255,.14)'},
+};
+const NAV = [
+  { key:'projects', title:'Projects', sub:'what we ship',   icon:'rocket' },
+  { key:'dev',      title:'Under Development', sub:'being built now', icon:'hammer' },
+  { key:'devops',   title:'DevOps',   sub:'cloud & infra',  icon:'cloudcog' },
+  { key:'dba',      title:'DBA',      sub:'databases',      icon:'database' },
+  { key:'qa',       title:'QA',       sub:'quality & tests',icon:'shield' },
+];
+
+/* ── Under Development registry ─────────────────────────────────────────────
+   STANDING RULE: every new application gets an entry here the moment work starts —
+   long before MVP. Include: what it is, stack, status per layer, links (mockups,
+   repos, live URLs) and a prompt box to send extra requirements to the team.      */
+/* ── Team contacts ──────────────────────────────────────────────────────────
+   Who the "send to the team" actions actually reach. Keep this the single
+   source of truth — cards read from it, never hard-code an address.          */
+const TEAM = {
+  naum:  { label:'Naum',  role:'CBO',        email:'naumamail@gmail.com', page:'/naum.html' },
+  vadim: { label:'Vadim', role:'Consultant', email:'',                    page:'' },
+};
+
+const WIP = [
+  {
+    name:'Proofly', tagline:'go · check · sign · proof', ac:'#0EA37F', bg:'rgba(14,163,127,.14)', icon:'shield',
+    stage:'IN DEVELOPMENT', pct:55,
+    what:'A form engine for any business that must prove it checked something. Fill a checklist on site, attach photos, capture a signature — a PDF proof is emailed before you leave. One app, many verticals: the vertical is a <b>template document</b>, not a release.',
+    verticals:['Property handover','Goods receipt','+ electrician, HVAC, playground…'],
+    stack:['Flutter (web + Android)','Kotlin + Spring Boot 3','MongoDB','Lambda (PDF)','Maven','JDK 21'],
+    layers:[
+      ['Mockups — 5 screens, 2 verticals','done'],
+      ['MongoDB model + seed (local + Atlas)','done'],
+      ['Kotlin API — catalog + reports, idempotent create','done'],
+      ['Deployed to AWS — ECS mnjlabs + Atlas','done'],
+      ['Flutter app — web + Android + iOS, data-driven forms','done'],
+      ['Flutter web deployed behind the same ALB','done'],
+      ['Sections · photos → S3','next'],
+      ['Signature capture','todo'],
+      ['PDF generation (Lambda) + email','todo'],
+      ['Auth / login + setup screen (recipients, language)','todo'],
+    ],
+    links:[
+      ['Live app (AWS)','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com','eye'],
+      ['API · Swagger','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/swagger-ui.html','api'],
+      ['API · health','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/actuator/health','pulse'],
+      ['Mockups — 5 screens','/proofly.html','browser'],
+    ],
+    paths:['c:\\myPrograms\\mnjlabs\\backend\\proofly-api','c:\\myPrograms\\mnjlabs\\frontend\\proofly-app'],
+    agent:'naum',
+
+    /* ── how to run it locally ── */
+    local:{
+      start:[
+        ['1 · Seed / update Mongo','cd c:\\myPrograms\\mnjlabs\\backend\\proofly-api'],
+        ['','"C:\\tools\\mongosh\\mongosh-2.5.8-win32-x64\\bin\\mongosh.exe" "mongodb://admin:admin123@localhost:27017/admin" db/bootstrap.js'],
+        ['2 · Build','set JAVA_HOME=C:\\java\\jdk-21  &&  mvn clean package -DskipTests'],
+        ['3 · Run the API','java -jar target\\proofly-api-0.1.0.jar'],
+        ['4 · Flutter web (against local API)','cd c:\\myPrograms\\mnjlabs\\frontend\\proofly-app  &&  flutter run -d chrome --dart-define=API_BASE=http://localhost:8098'],
+        ['5 · Flutter on Android','flutter run -d <device>   (defaults to the live AWS API)'],
+      ],
+      endpoints:[
+        ['API base','http://localhost:8098/api'],
+        ['Swagger UI','http://localhost:8098/swagger-ui.html'],
+        ['OpenAPI spec','http://localhost:8098/v3/api-docs'],
+        ['Actuator health','http://localhost:8098/actuator/health'],
+      ],
+      db:{
+        engine:'MongoDB 8.2 (local)',
+        rows:[
+          ['Host','localhost'], ['Port','27017'], ['Database','proofly'],
+          ['User','proofly'], ['Password','proofly123'],
+          ['Auth database','proofly'],
+          ['URI (paste into DataGrip)','mongodb://proofly:proofly123@localhost:27017/proofly?authSource=proofly'],
+        ],
+        note:'DataGrip → New → Data Source → MongoDB → paste the URI, or fill Host/Port/User/Password and set <b>Authentication database = proofly</b> (not admin).'
+      }
+    },
+
+    /* ── filled automatically the moment it is deployed to AWS ── */
+    cloud:{
+      env:'AWS us-east-1 · acct 876762733422',
+      rows:[
+        ['Live URL','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com'],
+        ['Swagger','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/swagger-ui.html'],
+        ['OpenAPI','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/v3/api-docs'],
+        ['Actuator health','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/actuator/health'],
+        ['ECS cluster','mnjlabs'],
+        ['Service / task def','proofly-api · proofly-api:1'],
+        ['ECR image','876762733422.dkr.ecr.us-east-1.amazonaws.com/mnjlabs/proofly-api:latest'],
+        ['CloudWatch logs','/ecs/proofly-api'],
+        ['Atlas cluster','proofly · M0 free · proofly.gabzldz.mongodb.net'],
+        ['Atlas project','MNJLabs (6a5dc3a485cf74c924ba8a12)'],
+        ['Mongo secret','proofly/mongo-uri (Secrets Manager)'],
+        ['Get the URI','aws secretsmanager get-secret-value --secret-id proofly/mongo-uri --region us-east-1 --query SecretString --output text'],
+      ],
+      warn:'Pilot posture: Atlas allowlist is 0.0.0.0/0 and the ALB is HTTP (no TLS). Both scheduled to be fixed.'
+    },
+  },
+
+  {
+    name:'Proofly · Firebase edition', tagline:'same product, opposite stack', ac:'#F5820D', bg:'rgba(245,130,13,.13)', icon:'cloud',
+    stage:'EXPERIMENT', pct:40,
+    what:'A deliberate <b>side-by-side rebuild</b> of Proofly on Firebase — Firestore + Auth + Cloud Functions + Hosting — to compare it honestly against the Kotlin/Mongo/ECS build. Same data model, same REST contract, so the Flutter app can point at either backend by changing one base URL. Functions are written in <b>TypeScript</b> (doubles as the TS/Node learning track).',
+    verticals:['Property handover','Goods receipt'],
+    stack:['TypeScript + Node 20','Cloud Functions v2','Firestore','Firebase Auth (custom claims)','Firebase Hosting','Emulator Suite'],
+    layers:[
+      ['Firebase CLI + project scaffold','done'],
+      ['Firestore data model + idempotent seed (Firestore + Auth)','done'],
+      ['Security rules — tenant isolation + immutable signed reports','done'],
+      ['REST API (Express in a Function) — mirrors the Kotlin controller','done'],
+      ['onReportWritten trigger — replaces the Kafka round trip','done'],
+      ['Console UI + live onSnapshot listeners','done'],
+      ['Smoke suite — 15/15 green, isolation proven','done'],
+      ['Point the Flutter app at this backend','next'],
+      ['Photos → Cloud Storage','todo'],
+      ['Deploy to a real Firebase project (needs Blaze plan)','todo'],
+    ],
+    links:[
+      ['Console (local)','http://localhost:5000','eye'],
+      ['Emulator UI','http://localhost:4000','browser'],
+      ['API health','http://localhost:5001/proofly-mnjlabs/europe-west1/api/health','pulse'],
+    ],
+    paths:['c:\\myPrograms\\mnjlabs\\firebase\\proofly-fb'],
+    agent:'naum',
+
+    local:{
+      start:[
+        ['1 · Build the functions','cd c:\\myPrograms\\mnjlabs\\firebase\\proofly-fb  &&  npm --prefix functions run build'],
+        ['2 · Start the whole backend','firebase emulators:start'],
+        ['3 · Seed (second terminal)','npm run seed'],
+        ['4 · Smoke test','node seed/smoke.js'],
+        ['Sign-ins (emulator only)','s.braun@hausverwaltung.de  /  yusuf@markt-demir.de  ·  proofly123'],
+      ],
+      endpoints:[
+        ['Console','http://localhost:5000'],
+        ['Emulator UI','http://localhost:4000'],
+        ['REST API','http://localhost:5001/proofly-mnjlabs/europe-west1/api'],
+        ['Firestore','localhost:8181'],
+        ['Auth','localhost:9099'],
+        ['Storage','localhost:9199'],
+      ],
+      db:{
+        engine:'Firestore (emulator — no external client)',
+        rows:[
+          ['Host','localhost:8181'],
+          ['Project id','proofly-mnjlabs'],
+          ['Collections','businessTypes · templates · organizations · users · reports'],
+          ['Browse the data','http://localhost:4000/firestore'],
+          ['Tenant boundary','the orgId custom claim (not a column)'],
+        ],
+        note:'<b>DataGrip cannot connect to Firestore</b> — it is not a JDBC database. Browse it in the Emulator UI instead, or in the Firebase console once deployed. This is one of the real trade-offs versus the MongoDB build.'
+      }
+    },
+
+    cloud:{
+      env:'Not deployed — runs entirely on the local Emulator Suite',
+      rows:[
+        ['Status','local only; nothing has touched Google Cloud yet'],
+        ['To deploy','firebase login  →  firebase deploy'],
+        ['Blocker','Cloud Functions require the Blaze (pay-as-you-go) plan — a card must be on file'],
+        ['Region (pinned)','europe-west1 — closest to the German pilot users'],
+      ],
+      warn:'Deliberately NOT deployed. Decide first whether this stack is worth pursuing — the comparison table in the project README is the input to that call.'
+    },
+  },
+];
+
+/* ── Cloud infrastructure registry — drives the DevOps cards ────────────────
+   STANDING RULE: every deployment adds/updates an entry here (health, stats,
+   monitoring links). Cards are compact; click one to open the full details.   */
+const INFRA = [
+  { id:'proofly', name:'proofly-api', sub:'Proofly · Kotlin + Spring Boot', cluster:'mnjlabs',
+    ac:'#0EA37F', icon:'shield', state:'healthy', metric:'1 / 1 task', extra:'0.25 vCPU · 0.5 GB',
+    rows:[
+      ['Status','healthy — target 172.31.83.140'],
+      ['Cluster / service','mnjlabs / proofly-api'],
+      ['Task definition','proofly-api:1 (Fargate, x86_64)'],
+      ['Image','876762733422.dkr.ecr.us-east-1.amazonaws.com/mnjlabs/proofly-api:latest'],
+      ['URL','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com'],
+      ['Health check','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/actuator/health'],
+      ['Swagger','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/swagger-ui.html'],
+      ['Load balancer','mnjlabs-alb → target group proofly-tg (:8090)'],
+      ['Database','MongoDB Atlas M0 — proofly.gabzldz.mongodb.net'],
+      ['Secret','proofly/mongo-uri'],
+      ['Logs','CloudWatch /ecs/proofly-api'],
+      ['Est. cost','~$18/mo (ALB) + Fargate ~$9 + Atlas $0'],
+    ],
+    warn:'Atlas allowlist 0.0.0.0/0 · ALB is HTTP (no TLS) — fixing tomorrow.' },
+
+  { id:'proofly-web', name:'proofly-web', sub:'Proofly · Flutter web (nginx)', cluster:'mnjlabs',
+    ac:'#5AB0FF', icon:'browser', state:'healthy', metric:'1 / 1 task', extra:'0.25 vCPU · 0.5 GB',
+    rows:[
+      ['Status','healthy'],
+      ['Cluster / service','mnjlabs / proofly-web'],
+      ['Task definition','proofly-web:1 (Fargate, x86_64)'],
+      ['Image','876762733422.dkr.ecr.us-east-1.amazonaws.com/mnjlabs/proofly-web:latest'],
+      ['App URL','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com'],
+      ['Health check','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/healthz'],
+      ['Target group','proofly-web-tg (:80) — ALB default action'],
+      ['ALB routing','/ → web · /api/* · /actuator/* · /swagger-ui* · /v3/* → proofly-api'],
+      ['Build','flutter build web --release → nginx:1.27-alpine'],
+      ['Platforms','web (deployed) · Android · iOS (scaffolded)'],
+      ['Logs','CloudWatch /ecs/proofly-web'],
+    ],
+    warn:'Served over HTTP — TLS/custom domain scheduled.' },
+
+  { id:'gym-be', name:'gymmanger-backend', sub:'GymManger · Spring Boot', cluster:'gymmanger',
+    ac:'#FFB43D', icon:'server', state:'running', metric:'1 / 1 task', extra:'port 8195',
+    rows:[
+      ['Status','running'],
+      ['Cluster / service','gymmanger / gymmanger-backend'],
+      ['URL','http://gymmanger-alb-835878002.us-east-1.elb.amazonaws.com'],
+      ['Swagger','http://gymmanger-alb-835878002.us-east-1.elb.amazonaws.com/swagger-ui/index.html'],
+      ['Health','http://gymmanger-alb-835878002.us-east-1.elb.amazonaws.com/actuator/health'],
+      ['Databases','RDS Postgres gymmanger-pg · MongoDB Atlas (GateOn)'],
+      ['Secrets','gymmanger/rds-master · gymmanger/mongo-uri'],
+    ] },
+
+  { id:'gym-fe', name:'gymmanger-frontend', sub:'GymManger · React + nginx', cluster:'gymmanger',
+    ac:'#5AB0FF', icon:'browser', state:'running', metric:'1 / 1 task', extra:'port 80',
+    rows:[
+      ['Status','running'],
+      ['Cluster / service','gymmanger / gymmanger-frontend'],
+      ['URL','http://gymmanger-alb-835878002.us-east-1.elb.amazonaws.com'],
+      ['Routing','/ → frontend · /v1/api/* · /actuator/* · /swagger-ui/* → backend'],
+    ] },
+
+  { id:'atlas', name:'MongoDB Atlas', sub:'MNJLabs project', cluster:'managed',
+    ac:'#3DD9A4', icon:'leaf', state:'idle', metric:'1 cluster', extra:'M0 free',
+    rows:[
+      ['Cluster','proofly · M0 · AWS us-east-1 · MongoDB 8.0.29'],
+      ['Host','proofly.gabzldz.mongodb.net'],
+      ['Database / user','proofly / proofly (readWrite)'],
+      ['Project','MNJLabs — 6a5dc3a485cf74c924ba8a12'],
+      ['Seeded','2 business types · 2 templates · 2 orgs · 2 users'],
+      ['Console','https://cloud.mongodb.com/v2/6a5dc3a485cf74c924ba8a12'],
+    ],
+    warn:'IP allowlist is 0.0.0.0/0 — tighten to the ECS egress before real data.' },
+
+  { id:'rds', name:'RDS Postgres', sub:'gymmanger-pg', cluster:'managed',
+    ac:'#8B82F5', icon:'database', state:'available', metric:'free tier', extra:'PG 18',
+    rows:[
+      ['Instance','gymmanger-pg'],
+      ['Database','gym · schema gymLocation'],
+      ['Status','available'],
+    ] },
+];
+
+/* ---------- KPI strip ---------- */
+const KPIS = [
+  { k:'Services live',  v:2,   u:'/ 2',  icon:'server',    ac:'#3DD9A4', spark:[1,1,2,2,2,2,2] },
+  { k:'Uptime',         v:100, u:'%',    icon:'pulse',     ac:'#5AB0FF', spark:[97,99,98,100,100,100,100] },
+  { k:'Gym records',    v:5,   u:'docs', icon:'filedb',    ac:'#8B82F5', spark:[0,0,2,3,5,5,5] },
+  { k:'Quality pillars',v:13,  u:'',     icon:'checklist', ac:'#FFB43D', spark:[4,6,8,10,12,13,13] },
+];
+function sparkPath(vals,w,h){
+  const mx=Math.max(...vals), mn=Math.min(...vals), rg=(mx-mn)||1;
+  return vals.map((v,i)=>{
+    const x=(i/(vals.length-1))*w, y=h-((v-mn)/rg)*(h-3)-1.5;
+    return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+  }).join(' ');
+}
+function renderKpis(){
+  $('kpis').innerHTML = KPIS.map((k,i)=>`
+    <div class="kpi" style="--ac:${k.ac}">
+      <div class="k">${ico(k.icon)} ${k.k}</div>
+      <div class="v"><span class="num" data-to="${k.v}">0</span><span class="u">${k.u}</span></div>
+      <svg class="spark" viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden="true">
+        <path d="${sparkPath(k.spark,120,22)}" fill="none" stroke="${k.ac}" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round" opacity=".85"
+          style="stroke-dasharray:400;stroke-dashoffset:400;animation:dash 1.3s ${0.15*i}s cubic-bezier(.2,.8,.3,1) forwards"/>
+      </svg>
+    </div>`).join('');
+  countUp();
+}
+function countUp(){
+  document.querySelectorAll('.num').forEach(el=>{
+    const to = +el.dataset.to; let cur = 0; const step = Math.max(1, Math.round(to/28));
+    const t = setInterval(()=>{ cur += step; if(cur>=to){cur=to; clearInterval(t);} el.textContent = cur; }, 26);
+  });
+}
+
+/* ---------- helpers ---------- */
+function row(k,v){ return `<div class="row"><span class="k">${k}</span><span class="v">${v||''}</span></div>`; }
+function bar(label,pct,ac){
+  return `<div style="margin:11px 0 3px"><div style="display:flex;justify-content:space-between;font-size:12px">
+    <span style="color:var(--muted)">${label}</span><span style="font-weight:600">${pct}%</span></div>
+    <div class="bar" style="--ac:${ac}"><i style="--w:${pct}%"></i></div></div>`;
+}
+function pcard(o){
+  return `<div class="pcard" style="--ac:${o.ac};--acbg:${o.bg}">
+    <div class="ph"><span class="pi">${ico(o.icon)}</span>
+      <div style="flex:1;min-width:0"><div class="pn">${o.name}</div><div class="pt">${o.tag}</div></div>
+      <span class="pill ${o.pcls}">${o.stat}</span></div>
+    <div class="pd">${o.desc}</div>
+    <div class="stack">${o.stack.map(s=>'<span>'+s+'</span>').join('')}</div>
+    ${o.url ? `<a class="plink" href="${o.url}" target="_blank">${ico('link')} ${o.link}</a>`
+            : (o.loc ? `<div class="loc">${ico('folder')} ${o.loc}</div>` : '')}
+  </div>`;
+}
+
+/* ---------- infra tiles: compact, click to expand ---------- */
+function infraTile(x){
+  const acbg = x.ac.replace('#','') && x.ac + '26';
+  const pill = {healthy:'ok', running:'ok', idle:'ok', available:'ok'}[x.state] || 'warn';
+  return `<div class="itile" id="tile-${x.id}" style="--ac:${x.ac};--acbg:${acbg}" onclick="tog('${x.id}')">
+    <div class="ih">
+      <span class="ib">${ico(x.icon)}</span>
+      <div style="min-width:0"><div class="inm">${x.name}</div><div class="isb">${x.sub}</div></div>
+      <span class="ich">${ico('chevD')}</span>
+    </div>
+    <div class="imt">
+      <span class="pill ${pill}">${ico('check')}${x.state.toUpperCase()}</span>
+      <span class="imv">${x.metric}</span><span class="iex">${x.extra||''}</span>
+    </div>
+    <div class="idet" onclick="event.stopPropagation()">
+      ${x.rows.map(r=>`<div class="kv"><span class="kk">${r[0]}</span>${/^https?:/.test(r[1])
+        ? `<a class="vv" href="${r[1]}" target="_blank">${r[1]}</a>`
+        : `<code class="vv mono" onclick="cp(this)" title="click to copy">${r[1]}</code>`}</div>`).join('')}
+      ${x.warn ? `<div class="iwarn">${ico('alert')} ${x.warn}</div>` : ''}
+    </div>
+  </div>`;
+}
+function tog(id){ document.getElementById('tile-'+id).classList.toggle('open'); }
+
+/* ---------- views ---------- */
+/* Compact, click-to-expand — same interaction as the DevOps infra tiles.
+   The collapsed box shows only what you need to see at a glance; everything
+   else (run commands, endpoints, DB details, requirements box) lives in .idet. */
+function wipCard(w){
+  const id = 'wip-' + w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const done = w.layers.filter(l => l[1] === 'done').length;
+  const step = s => `<div class="row" style="padding:6px 0;border-bottom:.5px solid var(--line2)">
+      <span class="k" style="flex:1;color:var(--ink2)">${s[0]}</span>
+      <span class="pill ${s[1]==='done'?'ok':s[1]==='next'?'warn':'mut'}">${s[1].toUpperCase()}</span></div>`;
+  return `<div class="itile wtile" id="tile-${id}" style="--ac:${w.ac};--acbg:${w.ac}26" onclick="tog('${id}')">
+    <div class="ih">
+      <span class="ib">${ico(w.icon)}</span>
+      <div style="min-width:0"><div class="inm">${w.name}</div><div class="isb">${w.tagline}</div></div>
+      <span class="ich">${ico('chevD')}</span>
+    </div>
+    <div class="imt">
+      <span class="pill warn">${w.stage}</span>
+      <span class="imv">${w.pct}%</span>
+      <span class="iex">${done}/${w.layers.length} layers done</span>
+    </div>
+    <div class="wmini"><i style="width:${w.pct}%;background:${w.ac}"></i></div>
+    <div class="idet" onclick="event.stopPropagation()">
+    <div style="font-size:13px;color:var(--ink2);line-height:1.6;margin:0 0 12px">${w.what}</div>
+    <div style="margin:14px 0 6px" class="k">Verticals</div>
+    <div class="stack">${w.verticals.map(v=>`<span>${v}</span>`).join('')}</div>
+    <div style="margin:12px 0 6px" class="k">Stack</div>
+    <div class="stack">${w.stack.map(s=>`<span>${s}</span>`).join('')}</div>
+    <div style="margin:14px 0 4px" class="k">Build status</div>
+    ${w.layers.map(step).join('')}
+    <div style="margin:14px 0 7px" class="k">Links</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${w.links.map(l=>`<a class="wl" href="${l[1]}" target="_blank">${ico(l[2])} ${l[0]}</a>`).join('')}
+    </div>
+    <div style="margin:14px 0 6px" class="k">Source</div>
+    ${w.paths.map(p=>`<div class="loc">${ico('folder')} ${p}</div>`).join('')}
+    ${w.local ? `
+      <div style="margin:16px 0 6px" class="k">Run locally</div>
+      ${w.local.start.map(s=>`<div class="cmd">${s[0]?`<span class="cl">${s[0]}</span>`:''}<code onclick="cp(this)" title="click to copy">${s[1]}</code></div>`).join('')}
+      <div style="margin:14px 0 6px" class="k">Local endpoints</div>
+      ${w.local.endpoints.map(e=>`<div class="kv"><span class="kk">${e[0]}</span><a class="vv" href="${e[1]}" target="_blank">${e[1]}</a></div>`).join('')}
+      <div style="margin:14px 0 6px" class="k">Database — ${w.local.db.engine} <span style="color:var(--muted);font-weight:400">· DataGrip</span></div>
+      ${w.local.db.rows.map(r=>`<div class="kv"><span class="kk">${r[0]}</span><code class="vv mono" onclick="cp(this)" title="click to copy">${r[1]}</code></div>`).join('')}
+      <div class="hint">${w.local.db.note}</div>` : ''}
+    ${w.cloud ? `
+      <div style="margin:16px 0 6px" class="k">☁ Deployed — ${w.cloud.env}</div>
+      ${w.cloud.rows.map(r=>`<div class="kv"><span class="kk">${r[0]}</span>${/^https?:/.test(r[1])
+        ? `<a class="vv" href="${r[1]}" target="_blank">${r[1]}</a>`
+        : `<code class="vv mono" onclick="cp(this)" title="click to copy">${r[1]}</code>`}</div>`).join('')}` : ''}
+    <div style="margin:16px 0 7px" class="k">Extra requirements → send to the team</div>
+    <textarea class="wreq" id="req-${id}" placeholder="e.g. add a 'reject whole delivery' action; support German + English; export monthly CSV…"></textarea>
+    <div class="wattach">
+      <input type="file" id="file-${id}" multiple hidden>
+      <button class="wclip" onclick="document.getElementById('file-${id}').click()">${ico('link')} Attach document</button>
+      <span class="wfiles" id="files-${id}"></span>
+    </div>
+    <div class="wact">
+      <button class="wsend" id="snd-${id}" onclick="sendReq('${id}','${esc(w.name)}','${w.agent}')">${ico('send')} Send to ${TEAM[w.agent]?.label || w.agent}</button>
+      <button class="wsend alt" onclick="openTeamPage('${id}','${esc(w.name)}','${w.agent}')">${ico('link')} ${TEAM[w.agent]?.label || w.agent}'s page</button>
+    </div>
+    ${TEAM[w.agent]?.email
+      ? `<div class="wmail">${TEAM[w.agent].label} · ${TEAM[w.agent].role} — <code onclick="cp(this)" title="click to copy">${TEAM[w.agent].email}</code></div>`
+      : `<div class="wmail">No email on file for ${w.agent} — the console send still works.</div>`}
+    </div>
+  </div>`;
+}
+/* Single-quote-safe for the inline onclick attributes above. */
+function esc(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function cp(el){
+  const t = el.textContent.trim();
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>{
+    const n = document.createElement('div'); n.className='copied'; n.textContent='copied ✓';
+    document.body.appendChild(n); setTimeout(()=>n.remove(), 1200);
+  }).catch(()=>{
+    const r = document.createRange(); r.selectNodeContents(el);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  });
+}
+function reqText(id, app){
+  const t = (document.getElementById('req-'+id)||{}).value || '';
+  if(!t.trim()){ alert('Type the extra requirements first.'); return null; }
+  return `Extra requirements for the ${app} application (currently under development):\n\n${t}\n\n`
+    + `Assess them against the current build, say what changes in the data model / API / app, estimate the effort, and flag anything risky before we build it.`;
+}
+/* Read the picked files into base64. Browser-side only — the file never leaves
+   the machine until Send is pressed, and the server never touches a disk path. */
+const MAX_ATTACH_MB = 20;
+function readFiles(input){
+  const files = Array.from(input?.files || []);
+  if(!files.length) return Promise.resolve([]);
+  const total = files.reduce((n,f) => n + f.size, 0);
+  if(total > MAX_ATTACH_MB * 1024 * 1024){
+    return Promise.reject(new Error(`attachments are ${(total/1048576).toFixed(1)} MB, limit is ${MAX_ATTACH_MB} MB`));
+  }
+  return Promise.all(files.map(f => new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('could not read ' + f.name));
+    // result is a data: URL — everything after the comma is the base64 payload.
+    fr.onload = () => resolve({ filename: f.name, contentBase64: String(fr.result).split(',')[1] });
+    fr.readAsDataURL(f);
+  })));
+}
+
+/* Show what is attached, with a way to clear it. */
+document.addEventListener('change', e => {
+  if(!e.target.matches('input[type=file][id^="file-"]')) return;
+  const id = e.target.id.slice(5);
+  const out = document.getElementById('files-' + id);
+  const files = Array.from(e.target.files || []);
+  if(!files.length){ out.innerHTML = ''; return; }
+  const bytes = files.reduce((n,f) => n + f.size, 0);
+  const size = bytes < 1048576 ? `${Math.max(1, Math.round(bytes/1024))} KB` : `${(bytes/1048576).toFixed(1)} MB`;
+  out.innerHTML = files.map(f => `<b>${f.name.replace(/[<>&]/g,'')}</b>`).join(', ')
+    + ` · ${size} `
+    + `<button class="wclear" onclick="clearFiles('${id}')" title="remove">×</button>`;
+});
+function clearFiles(id){
+  document.getElementById('file-'+id).value = '';
+  document.getElementById('files-'+id).innerHTML = '';
+}
+
+/* Email the requirement to the team member, From michaelbu@mnjlabs.com.
+   Sends through the local server (/mail/send → Google Workspace SMTP) and
+   reports the real result on the button — no silent failures. */
+async function sendReq(id, app, agent){
+  const m = TEAM[agent] || {};
+  if(!m.email){ alert('No email address on file for ' + agent + '.'); return; }
+  const t = (document.getElementById('req-'+id)||{}).value || '';
+  if(!t.trim()){ alert('Type the extra requirements first.'); return; }
+
+  const btn = document.getElementById('snd-'+id);
+  const original = btn.innerHTML;
+  const set = (txt, cls) => { btn.innerHTML = txt; btn.className = 'wsend' + (cls ? ' ' + cls : ''); };
+  set('Sending…'); btn.disabled = true;
+
+  // Attachments: read the picked files in the browser and send them base64 in the
+  // JSON body. Nothing is uploaded until you press Send.
+  let attachments = [];
+  try {
+    attachments = await readFiles(document.getElementById('file-'+id));
+  } catch(e) {
+    set('Failed — ' + e.message, 'errb');
+    setTimeout(()=>{ set(original); btn.disabled = false; }, 5000);
+    return;
+  }
+
+  // Subject carries the provenance; the body is purely what was typed.
+  // The team signature is appended server-side in /mail/send.
+  try {
+    const r = await fetch('/mail/send', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        to: m.email,
+        subject: `Sent from the MN&J Labs Command Center · application: ${app}`,
+        body: t.trim(),
+        attachments
+      })
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    set('Sent to ' + m.label + (attachments.length ? ` + ${attachments.length} file ✓` : ' ✓'), 'okb');
+    setTimeout(()=>{ set(original); btn.disabled = false; }, 2600);
+  } catch(e){
+    set('Failed — ' + e.message, 'errb');
+    console.error('[mail]', e);
+    setTimeout(()=>{ set(original); btn.disabled = false; }, 5000);
+  }
+}
+/* Go to the team member's own page, carrying the requirement with it so the
+   typed text is not lost in the redirect (the page renders it as a hand-off
+   banner). Requirement text is optional here — the page opens either way. */
+function openTeamPage(id, app, agent){
+  const m = TEAM[agent];
+  if(!m || !m.page){ alert('No team page on file for ' + agent + '.'); return; }
+  const t = (document.getElementById('req-'+id)||{}).value || '';
+  location.href = m.page + (t.trim()
+    ? '?app=' + encodeURIComponent(app) + '&q=' + encodeURIComponent(reqText(id, app))
+    : '');
+}
+
+const VIEWS = {
+dev: () => `
+  <div class="vh">Under Development</div>
+  <div class="vs">Applications being built right now — added the day work starts, long before MVP.</div>
+  <div class="wipg fx">${WIP.map(wipCard).join('') || '<div class="card">Nothing in development.</div>'}</div>`,
+
+projects: () => `
+  <div class="vh">Projects</div>
+  <div class="vs">Everything MN&amp;J Labs is building — status, stack, and where it lives.</div>
+  <div class="proj fx">
+    ${pcard({name:'Proofly',tag:'deployed · under dev',icon:'shield',ac:'#0EA37F',bg:'rgba(14,163,127,.14)',
+      pcls:'warn',stat:'UNDER DEV',
+      desc:'Proof-of-check form engine — fill a checklist on site, photos + signature, PDF proof emailed. One app, many verticals (the vertical is a template document). API live on AWS; Flutter app next.',
+      stack:['Kotlin','Spring Boot 3','MongoDB Atlas','ECS mnjlabs','Flutter (next)','Lambda (next)'],
+      url:'http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com/swagger-ui.html',link:'open Swagger'})}
+    ${pcard({name:'GymManger',tag:'live product · gym locator',icon:'barbell',ac:'#3DD9A4',bg:'rgba(61,217,164,.14)',
+      pcls:'ok',stat:'LIVE',
+      desc:'Full-stack: React frontend + Spring Boot backend, dual-store (Postgres + MongoDB Atlas), one ALB. Deployed to AWS ECS Fargate, serving real GateOn gym data.',
+      stack:['Java 21','Spring Boot 3','React/Vite','Postgres','Mongo Atlas','ECS','ALB'],url:GYM_URL,link:'open live app'})}
+    ${pcard({name:'Notes SaaS',tag:'built · serverless SaaS ×2',icon:'note',ac:'#8B82F5',bg:'rgba(139,130,245,.14)',
+      pcls:'blue',stat:'READY',
+      desc:'Teaching build: REST SaaS on API Gateway + Lambda + DynamoDB — built twice, in Python and TypeScript, to compare the two. Both verified, ready to deploy.',
+      stack:['API Gateway','Lambda','DynamoDB','Python 3.12','TypeScript','SAM'],
+      loc:'c:\\myPrograms\\mnjlabs\\saas'})}
+    ${pcard({name:'ShopingChart',tag:'local · promo pricing MS',icon:'cart',ac:'#FFB43D',bg:'rgba(255,180,61,.14)',
+      pcls:'mut',stat:'LOCAL',
+      desc:'Spring Boot microservice: shopping cart with TwoPlusOne / ThirdForFree promotions, dual-store, Swagger, Actuator, H2.',
+      stack:['Java 21','Spring Boot','H2','Swagger'],loc:'c:\\Interviews\\interview\\ShopingChart'})}
+    ${pcard({name:'EchoServer',tag:'interview practice',icon:'server',ac:'#8b87a3',bg:'rgba(255,255,255,.07)',
+      pcls:'mut',stat:'READY',
+      desc:'Minimal TCP echo server, Java 21 virtual threads, round-trip test. Built for the PANW networking task.',
+      stack:['Java 21','Sockets','JUnit'],loc:'c:\\Interviews\\preps\\EchoServer'})}
+  </div>`,
+
+devops: () => `
+  <div class="vh">DevOps</div>
+  <div class="vs">Cloud &amp; infrastructure across both clusters — click any card for full details.</div>
+  <div class="fx">
+    <div class="k" style="margin:0 0 9px">☁ Cluster <code>mnjlabs</code> · 2 services</div>
+    <div class="infra">${INFRA.filter(i=>i.cluster==='mnjlabs').map(infraTile).join('')}</div>
+    <div class="k" style="margin:6px 0 9px">☁ Cluster <code>gymmanger</code> · 2 services</div>
+    <div class="infra">${INFRA.filter(i=>i.cluster==='gymmanger').map(infraTile).join('')}</div>
+    <div class="k" style="margin:6px 0 9px">🗄 Managed data services</div>
+    <div class="infra">${INFRA.filter(i=>i.cluster==='managed').map(infraTile).join('')}</div>
+    <div class="card" style="--ac:#FFB43D"><h3>${ico('chart')} Capacity &amp; cost</h3>
+      ${bar('ECS CPU reserved',22,'#FFB43D')}
+      ${bar('ECS memory reserved',38,'#FFB43D')}
+      ${bar('RDS free-tier used',31,'#3DD9A4')}
+      ${row('Est. monthly','<span class="pill warn">~$35</span> ALB + Fargate + RDS')}
+    </div>
+    <div class="card" style="--ac:#FF6B6B"><h3>${ico('alert')} Open items</h3>
+      ${row('HTTPS / custom domain','<span class="pill warn">todo</span> ALB DNS only, no TLS')}
+      ${row('Atlas IP allowlist','<span class="pill red">0.0.0.0/0</span> tighten to ECS egress')}
+      ${row('Exposed secrets','<span class="pill red">rotate</span> AWS key · Atlas key · RDS pw')}
+    </div>
+  </div>`,
+
+dba: () => `
+  <div class="vh">DBA</div>
+  <div class="vs">Databases — cloud and local, schema and data.</div>
+  <div class="fx">
+    <div class="card" style="--ac:#3DD9A4"><h3>${ico('database')} PostgreSQL
+      <span class="r pill ok">available</span></h3>
+      ${row('RDS gymmanger-pg','db <code>gym</code> · schema <code>gymLocation</code> · table <code>gyms</code>')}
+      ${row('Migrations','Flyway V1 baseline · <code>ddl-auto: validate</code>')}
+      ${row('Local','PG 18 · localhost:5432 · <code>public</code> schema only')}
+      ${row('Convention','dedicated role per service · idempotent bootstrap')}
+    </div>
+    <div class="card" style="--ac:#3DD9A4"><h3>${ico('leaf')} MongoDB
+      <span class="r pill ok">connected</span></h3>
+      ${row('Atlas cluster','gymservices-cluster.gr9v7ol')}
+      ${row('Collection','<code>gymdb.gym</code> · 5 docs · user <code>gymapp</code> (readWrite)')}
+      ${row('Local','Mongo 8.2 · localhost:27017 · admin/authSource=admin')}
+      ${row('Convention','single DB · no embedded/Flapdoodle in tests')}
+    </div>
+    <div class="card" style="--ac:#8B82F5"><h3>${ico('table')} DynamoDB <span class="r pill blue">designed</span></h3>
+      ${row('Notes SaaS table','single-table · <code>tenantId</code> HASH + <code>noteId</code> RANGE')}
+      ${row('Billing','PAY_PER_REQUEST (on-demand)')}
+      ${row('Isolation','tenant = partition key → no cross-tenant reads')}
+    </div>
+  </div>`,
+
+qa: () => `
+  <div class="vh">QA</div>
+  <div class="vs">Quality &amp; testing — the bar every service ships at.</div>
+  <div class="fx">
+    <div class="card" style="--ac:#5AB0FF"><h3>${ico('checklist')} Backend quality standard
+      <span class="r pill blue">13 pillars</span></h3>
+      ${row('Pillars','layering · DTO⇄entity · validation · envelope · errors · transactions · migrations · observability · config · tests · packaging · docs · build-verify')}
+      ${row('Applies to','Java · Python · Go · Kotlin · Node/TS — <b>same bar</b>')}
+      ${bar('Languages mapped to the standard',100,'#5AB0FF')}
+    </div>
+    <div class="card" style="--ac:#5AB0FF"><h3>${ico('tools')} QA capability</h3>
+      ${row('senior-qa / qa-agent','coverage · write+run tests · contract QA · adversarial')}
+      ${row('playwright-pro','E2E browser tests')}
+      ${row('code-review','diff review for correctness + cleanup')}
+    </div>
+    <div class="card" style="--ac:#3DD9A4"><h3>${ico('clipboard')} Latest verification</h3>
+      ${row('GymManger','<span class="pill ok">passed</span> health UP · endpoints 200 · real data')}
+      ${row('Notes SaaS · Python','<span class="pill ok">passed</span> py_compile — 3 modules')}
+      ${row('Notes SaaS · TypeScript','<span class="pill ok">passed</span> tsc --noEmit strict')}
+      ${row('ShopingChart','<span class="pill ok">passed</span> full QA sweep')}
+    </div>
+  </div>`,
+};
+
+/* ---------- router ---------- */
+let current = location.hash.replace('#','') || 'projects';
+if(!VIEWS[current]) current = 'projects';
+function render(){
+  $('nav').innerHTML = NAV.map(n=>`<button class="${n.key===current?'on':''}" data-k="${n.key}"
+      style="--ac:${AC[n.key].c};--acbg:${AC[n.key].bg}">
+      <span class="box">${ico(n.icon)}</span>
+      <span>${n.title}<span class="sub">${n.sub}</span></span></button>`).join('');
+  $('nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    current=b.dataset.k; history.replaceState(null,'','#'+current); render();
+  });
+  $('view').innerHTML = VIEWS[current]();
+}
+render();
+renderKpis();
+
+/* 3D stage */
+const mv = $('mv');
+mv.addEventListener('load', ()=>{ const l=$('mvload'); if(l) l.style.display='none'; });
+mv.addEventListener('error',()=>{ const l=$('mvload'); if(l) l.textContent='3D model unavailable'; });
+
+const st=document.createElement('style');
+st.textContent='@keyframes dash{to{stroke-dashoffset:0}}';
+document.head.appendChild(st);
+</script>
+</body>
+</html>

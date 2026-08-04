@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GateOn — Gym Admin</title>
+<style>
+  :root{
+    --clay:#D85A30; --gold:#EF9F27; --purple:#534AB7;
+    --bg:#f6f5f1; --panel:#fff; --line:#e7e3da; --line2:#f1efe9;
+    --ink:#211f1b; --ink2:#4a4740; --muted:#8a867c;
+    --ok:#0f6e56; --ok-bg:#e1f5ee; --err:#a32d2d; --err-bg:#fcebeb;
+    --accent:#2E7D6B; --accent-ink:#0c3b32; --accent-bg:#e4f3ef;
+    --shadow:0 1px 2px rgba(20,18,12,.04), 0 10px 30px -12px rgba(20,18,12,.14);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  header{display:flex;align-items:center;gap:12px;padding:13px 22px;background:var(--panel);border-bottom:.5px solid var(--line);position:sticky;top:0;z-index:5}
+  .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#3f9c86);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;letter-spacing:-1px}
+  .htitle{font-size:15px;font-weight:700}.htitle span{color:var(--accent)}
+  .hsub{font-size:11.5px;color:var(--muted)}
+  .who{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px}
+  .who b{color:var(--ink)}
+  .btn{font:inherit;font-size:13px;font-weight:600;padding:8px 15px;border-radius:9px;border:.5px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer;transition:all .12s}
+  .btn:hover{background:var(--line2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(1.05)}
+  .btn.primary:disabled{opacity:.5;cursor:default;filter:none}
+  .wrap{max-width:840px;margin:0 auto;padding:26px 22px 60px}
+  .card{background:var(--panel);border:.5px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:22px 24px;margin:0 0 16px}
+  .card h2{font-size:16px;font-weight:700;margin:0 0 4px}
+  .card .sub{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin:12px 0 5px}
+  input{width:100%;font:inherit;font-size:14px;padding:10px 13px;border:.5px solid var(--line);border-radius:10px;background:#fdfcfa;transition:border-color .12s,box-shadow .12s}
+  input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+  .rowf{display:flex;gap:12px}.rowf>div{flex:1}
+  .hint{font-size:11px;color:var(--muted);margin-top:5px}
+  .msg{font-size:12.5px;margin-top:12px;padding:9px 12px;border-radius:9px;display:none}
+  .msg.err{display:block;background:var(--err-bg);color:var(--err)}
+  .msg.ok{display:block;background:var(--ok-bg);color:var(--ok)}
+  .toggle{font-size:12.5px;color:var(--accent-ink);margin-top:14px;cursor:pointer;font-weight:600}
+  .toggle:hover{text-decoration:underline}
+  .stat{display:flex;gap:14px;margin:0 0 16px}
+  .tile{flex:1;background:var(--panel);border:.5px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .tile .k{font-size:11.5px;color:var(--muted)}
+  .tile .v{font-size:24px;font-weight:700;margin-top:3px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:11px 12px;border-bottom:.5px solid var(--line2);font-size:13.5px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+  td .mono{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
+  .empty{padding:26px;text-align:center;color:var(--muted);font-size:13.5px}
+  .pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--accent-bg);color:var(--accent-ink)}
+  .lock{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:#eef;color:#3730a3}
+  .hide{display:none !important}
+  .foot{font-size:11.5px;color:var(--muted);text-align:center;margin-top:20px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">G</div>
+  <div><div class="htitle">Gate<span>On</span> · Gym Admin</div><div class="hsub">book &amp; manage — Cognito-secured multi-tenant</div></div>
+  <div class="who">
+    <span id="whoName" class="hide"><b id="tenantName"></b> <span class="pill">tenant</span></span>
+    <button id="logout" class="btn hide">Sign out</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- LOGIN -->
+  <div id="loginCard" class="card" style="max-width:440px;margin:40px auto">
+    <h2 id="loginTitle">Sign in</h2>
+    <div class="sub" id="loginSub">Sign in with your gym admin email and password.</div>
+
+    <div id="signupOnly" class="hide">
+      <label>Gym name</label>
+      <input id="in-name" placeholder="Rhein Fitness" autocomplete="off">
+    </div>
+    <label>Admin email</label>
+    <input id="in-email" placeholder="admin@yourgym.de" autocomplete="username">
+    <label>Password</label>
+    <input id="in-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <div id="passHint" class="hint hide">At least 8 characters, with an uppercase, a lowercase, and a number.</div>
+
+    <div style="margin-top:18px">
+      <button id="doAuth" class="btn primary" style="width:100%">Sign in</button>
+    </div>
+    <div class="toggle" id="toggleMode">New gym? Create a tenant →</div>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dash" class="hide">
+    <div class="stat">
+      <div class="tile"><div class="k">Bookings</div><div class="v" id="statCount">0</div></div>
+      <div class="tile"><div class="k">Tenant ID</div><div class="v" style="font-size:15px;font-family:ui-monospace,monospace" id="statTid">—</div></div>
+      <div class="tile"><div class="k">Auth</div><div class="v" style="font-size:15px"><span class="lock">🔒 Cognito</span></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Book a slot</h2>
+      <div class="sub">Add a booking for one of your members.</div>
+      <div class="rowf">
+        <div><label>Member name</label><input id="bk-name" placeholder="Anna Müller"></div>
+        <div><label>Slot</label><input id="bk-slot" type="datetime-local"></div>
+      </div>
+      <div style="margin-top:16px"><button id="doBook" class="btn primary">Add booking</button></div>
+      <div id="bookMsg" class="msg"></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;padding:18px 24px 14px">
+        <h2 style="margin:0">Your bookings</h2>
+        <button id="refresh" class="btn" style="margin-left:auto">Refresh</button>
+      </div>
+      <div id="bookings"></div>
+    </div>
+
+    <div class="foot">
+      Signed in via <b>Amazon Cognito</b>. Your JWT carries your tenant as a verified claim — the API derives
+      your tenant from the token, so you only ever see <b>this tenant's</b> bookings.
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "https://7hccaspjc2.execute-api.us-east-1.amazonaws.com/Prod";
+const REGION = "us-east-1";
+const CLIENT_ID = "7qasv24s9f3q82spf3sfs26c17";
+const COGNITO = "https://cognito-idp." + REGION + ".amazonaws.com/";
+const $ = id => document.getElementById(id);
+const store = {
+  get:()=>{ try{ return JSON.parse(localStorage.getItem("gateon")||"null"); }catch{ return null; } },
+  set:v=>localStorage.setItem("gateon", JSON.stringify(v)),
+  clear:()=>localStorage.removeItem("gateon"),
+};
+let mode = "signin";
+
+function msg(el, text, ok){ el.textContent=text; el.className="msg "+(ok?"ok":"err"); }
+function clearMsg(el){ el.className="msg"; el.textContent=""; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function jwtClaims(t){ try{ return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); }catch{ return {}; } }
+
+async function cognitoLogin(email, password){
+  const r = await fetch(COGNITO, {
+    method:"POST",
+    headers:{"Content-Type":"application/x-amz-json-1.1","X-Amz-Target":"AWSCognitoIdentityProviderService.InitiateAuth"},
+    body: JSON.stringify({AuthFlow:"USER_PASSWORD_AUTH", ClientId:CLIENT_ID, AuthParameters:{USERNAME:email, PASSWORD:password}})
+  });
+  const d = await r.json();
+  if(!r.ok || !d.AuthenticationResult){
+    const m = (d.__type||"").split("#").pop();
+    throw new Error(d.message || (m==="NotAuthorizedException"?"Incorrect email or password":m) || "Sign in failed");
+  }
+  return d.AuthenticationResult.IdToken;
+}
+
+$("toggleMode").onclick = () => {
+  mode = mode==="signin" ? "signup" : "signin";
+  const signup = mode==="signup";
+  $("signupOnly").classList.toggle("hide", !signup);
+  $("passHint").classList.toggle("hide", !signup);
+  $("loginTitle").textContent = signup ? "Create your gym" : "Sign in";
+  $("loginSub").textContent = signup ? "Register a new tenant — an admin login is created for you."
+                                     : "Sign in with your gym admin email and password.";
+  $("doAuth").textContent = signup ? "Create tenant" : "Sign in";
+  $("toggleMode").textContent = signup ? "← Have an account? Sign in" : "New gym? Create a tenant →";
+  $("in-pass").setAttribute("autocomplete", signup ? "new-password" : "current-password");
+  clearMsg($("loginMsg"));
+};
+
+$("doAuth").onclick = async () => {
+  clearMsg($("loginMsg")); $("doAuth").disabled = true;
+  const email=$("in-email").value.trim(), pass=$("in-pass").value;
+  try {
+    if (mode === "signup") {
+      const name=$("in-name").value.trim();
+      if(!name||!email||!pass){ msg($("loginMsg"),"Gym name, email and password are required."); return; }
+      const r = await fetch(API+"/tenants",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,adminEmail:email,password:pass})});
+      const d = await r.json();
+      if(!r.ok||!d.success){ msg($("loginMsg"), d.message||"Could not create tenant."); return; }
+      // auto sign-in after signup
+      const idt = await cognitoLogin(email, pass);
+      login(idt, d.data.name);
+    } else {
+      if(!email||!pass){ msg($("loginMsg"),"Email and password are required."); return; }
+      const idt = await cognitoLogin(email, pass);
+      const c = jwtClaims(idt);
+      let name = email;
+      try{ const t=await (await fetch(API+"/tenants/"+c["custom:tenantId"])).json(); if(t&&t.name) name=t.name; }catch{}
+      login(idt, name);
+    }
+  } catch(e){ msg($("loginMsg"), e.message); }
+  finally { $("doAuth").disabled = false; }
+};
+
+function login(idToken, name){
+  const c = jwtClaims(idToken);
+  store.set({idToken, tid:c["custom:tenantId"], name, email:c.email});
+  showDash();
+}
+function logout(){ store.clear(); location.reload(); }
+$("logout").onclick = logout;
+
+function showDash(){
+  const s = store.get(); if(!s) return;
+  $("loginCard").classList.add("hide");
+  $("dash").classList.remove("hide");
+  $("whoName").classList.remove("hide"); $("logout").classList.remove("hide");
+  $("tenantName").textContent = s.name;
+  $("statTid").textContent = s.tid || "—";
+  loadBookings();
+}
+
+async function loadBookings(){
+  const s = store.get(); if(!s) return;
+  $("bookings").innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const r = await fetch(API+"/bookings",{headers:{"Authorization":"Bearer "+s.idToken}});
+    if(r.status===401||r.status===403){ msg($("bookMsg"),"Session expired — please sign in again."); setTimeout(logout,1200); return; }
+    const list = await r.json();
+    $("statCount").textContent = list.length;
+    if(!list.length){ $("bookings").innerHTML = '<div class="empty">No bookings yet — add one above.</div>'; return; }
+    list.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    $("bookings").innerHTML =
+      '<table><thead><tr><th>Member</th><th>Slot</th><th>Booking ID</th></tr></thead><tbody>'+
+      list.map(b=>`<tr><td><b>${esc(b.memberName)}</b></td><td>${esc(b.slot)}</td><td><span class="mono">${esc(b.bookingId).slice(0,8)}…</span></td></tr>`).join('')+
+      '</tbody></table>';
+  } catch(e){ $("bookings").innerHTML = '<div class="empty">Could not load bookings: '+esc(e.message)+'</div>'; }
+}
+$("refresh").onclick = loadBookings;
+
+$("doBook").onclick = async () => {
+  clearMsg($("bookMsg"));
+  const s = store.get(); if(!s) return;
+  const name=$("bk-name").value.trim(), slot=$("bk-slot").value.trim();
+  if(!name||!slot){ msg($("bookMsg"),"Member name and slot are required."); return; }
+  $("doBook").disabled = true;
+  try {
+    const r = await fetch(API+"/bookings",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+s.idToken},body:JSON.stringify({memberName:name,slot})});
+    if(r.status===401||r.status===403){ msg($("bookMsg"),"Session expired — please sign in again."); setTimeout(logout,1200); return; }
+    const d = await r.json();
+    if(!r.ok||!d.success){ msg($("bookMsg"), d.message||"Could not add booking."); return; }
+    msg($("bookMsg"),"Booking added ✓", true);
+    $("bk-name").value=""; $("bk-slot").value="";
+    loadBookings();
+  } catch(e){ msg($("bookMsg"),"Network error: "+e.message); }
+  finally { $("doBook").disabled = false; }
+};
+
+if(store.get()) showDash();
+</script>
+</body>
+</html>

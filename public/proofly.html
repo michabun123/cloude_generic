@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proofly — Screen Mockups</title>
+<style>
+  :root{
+    --bg:#0b1016; --ink:#eef2f6; --ink2:#c3ccd6; --muted:#8a97a6;
+    --line:rgba(255,255,255,.09);
+    --brand:#0EA37F; --brand2:#12C79A; --amber:#F0A32E;
+    --clay:#D85A30; --gold:#EF9F27; --purple:#8B82F5;
+    /* phone — light UI, readable in sunlight */
+    --p-bg:#f4f7f8; --p-card:#fff; --p-line:#e4e9ec; --p-line2:#f0f3f5;
+    --p-ink:#16202a; --p-ink2:#4a5765; --p-muted:#8593a1;
+    --ok:#0b7a5f; --ok-bg:#e3f5ef; --warn:#8a5a08; --warn-bg:#fdf2dd; --err:#a32d2d; --err-bg:#fdecec;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  svg{display:block}
+  .i{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+  .glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .glow b{position:absolute;display:block;border-radius:50%;filter:blur(110px);opacity:.28}
+  .glow .a{width:640px;height:640px;background:#0EA37F;top:-270px;left:-150px}
+  .glow .b{width:520px;height:520px;background:#2F6FED;top:-170px;right:-170px;opacity:.2}
+  .glow .c{width:460px;height:460px;background:#D85A30;bottom:-240px;left:38%;opacity:.12}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(255,255,255,.045) 1px,transparent 0);background-size:3px 3px}
+  .shell{position:relative;z-index:2}
+
+  header{display:flex;align-items:center;gap:14px;padding:18px 34px;border-bottom:.5px solid var(--line);flex-wrap:wrap;
+    background:rgba(11,16,22,.7);backdrop-filter:blur(16px);position:sticky;top:0;z-index:20}
+  .bname{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+  .btag{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.3px}
+  .byline{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted)}
+  .mnj{font-size:13.5px;font-weight:800;letter-spacing:-.2px;color:var(--ink)}
+  .mnj .m{color:var(--clay)}.mnj .n{color:var(--gold)}.mnj .j{color:var(--purple)}
+  .byline .sep{width:1px;height:22px;background:var(--line)}
+
+  .intro{max-width:1560px;margin:0 auto;padding:30px 34px 6px}
+  .intro h1{font-size:28px;font-weight:800;letter-spacing:-.8px;margin:0 0 9px;line-height:1.15}
+  .intro h1 .g{background:linear-gradient(100deg,var(--brand2),var(--amber));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .intro p{font-size:14.5px;color:var(--ink2);line-height:1.65;margin:0;max-width:72ch}
+
+  .switch{max-width:1560px;margin:0 auto;padding:22px 34px 4px;display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+  .switch .lbl{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+  .seg{display:flex;gap:6px;background:rgba(255,255,255,.05);border:.5px solid var(--line);padding:5px;border-radius:14px}
+  .seg button{font:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:10px;border:0;background:transparent;
+    color:var(--ink2);cursor:pointer;transition:all .16s;display:flex;align-items:center;gap:9px}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--brand);color:#fff;box-shadow:0 6px 18px -6px rgba(14,163,127,.8)}
+  .seg .i{width:17px;height:17px}
+  .persona{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted)}
+  .persona .av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(140deg,#3b4d5c,#22303c);color:#cfe3dc;font-size:11px;font-weight:800;border:1px solid var(--line)}
+
+  .rail{max-width:1560px;margin:0 auto;padding:24px 34px 56px;display:flex;gap:26px;overflow-x:auto;align-items:flex-start}
+  .step{flex:0 0 auto;width:296px}
+  .cap{display:flex;align-items:center;gap:10px;margin:0 0 13px;padding-left:3px}
+  .cap .n{width:24px;height:24px;border-radius:8px;background:var(--brand);color:#fff;font-size:12px;font-weight:800;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .cap .t{font-size:13.5px;font-weight:700}
+  .cap .s{font-size:11px;color:var(--muted);margin-top:1px}
+
+  .phone{width:296px;height:610px;border-radius:36px;background:linear-gradient(160deg,#2a3038,#0a0d11);padding:9px;
+    box-shadow:0 30px 64px -20px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.08)}
+  .scr{width:100%;height:100%;border-radius:28px;background:var(--p-bg);overflow:hidden;display:flex;flex-direction:column;
+    color:var(--p-ink);position:relative}
+  .sbar{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 17px;font-size:10px;
+    font-weight:700;color:var(--p-ink2);flex-shrink:0}
+  .sbar .rr{display:flex;align-items:center;gap:4px}
+  .nav{display:flex;align-items:center;gap:10px;padding:10px 15px;background:var(--p-card);border-bottom:.5px solid var(--p-line);flex-shrink:0}
+  .nav .bk{color:var(--p-muted)}.nav .bk .i{width:16px;height:16px}
+  .nav .ti{font-size:14.5px;font-weight:700;letter-spacing:-.2px}
+  .nav .sb{font-size:10.5px;color:var(--p-muted);margin-top:1px}
+  .nav .rt{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--brand);display:flex;align-items:center;gap:4px}
+  .nav .rt .i{width:13px;height:13px}
+  .body{flex:1;overflow:hidden;padding:13px 14px;display:flex;flex-direction:column;gap:9px}
+
+  .card{background:var(--p-card);border:.5px solid var(--p-line);border-radius:13px;padding:11px 13px}
+  .row{display:flex;align-items:center;gap:10px}
+  .lab{font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--p-muted)}
+  .sm{font-size:11.5px;color:var(--p-ink2)}
+  .xs{font-size:10.5px;color:var(--p-muted)}
+  .pill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;padding:3.5px 8px;border-radius:99px;letter-spacing:.3px}
+  .pill .i{width:10px;height:10px;stroke-width:3}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)}
+  .pill.draft{background:var(--warn-bg);color:var(--warn)}
+  .pill.bad{background:var(--err-bg);color:var(--err)}
+  .pill.info{background:#e7eefb;color:#2352a8}
+  .ic{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    background:#e8f4f0;color:var(--brand)}
+  .ic .i{width:17px;height:17px}
+  .ic.red{background:var(--err-bg);color:var(--err)}
+  .ic.amber{background:var(--warn-bg);color:var(--warn)}
+
+  .list-item{background:var(--p-card);border:.5px solid var(--p-line);border-radius:13px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+  .list-item .g1{flex:1;min-width:0}
+  .nm{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .sec{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--p-card);border:.5px solid var(--p-line);border-radius:12px}
+  .sec .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--p-line);flex-shrink:0;display:flex;
+    align-items:center;justify-content:center;color:#fff}
+  .sec .dot .i{width:11px;height:11px;stroke-width:3.5}
+  .sec .dot.done{background:var(--ok);border-color:var(--ok)}
+  .sec .dot.now{border-color:var(--brand);border-width:3px}
+  .sec .sn{font-size:12.5px;font-weight:600;flex:1}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:11px;font-weight:600;padding:6.5px 11px;border-radius:9px;border:.5px solid var(--p-line);
+    background:var(--p-card);color:var(--p-ink2);display:inline-flex;align-items:center;gap:5px}
+  .chip .i{width:12px;height:12px}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .chip.warn.on{background:#e3a72a;border-color:#e3a72a;color:#3c2a02}
+
+  .photos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .ph{aspect-ratio:1;border-radius:9px;overflow:hidden;position:relative;border:.5px solid rgba(0,0,0,.06)}
+  .ph svg{width:100%;height:100%}
+  .ph.add{background:#eef2f4;border:1.5px dashed #c3cfd7;display:flex;align-items:center;justify-content:center;color:var(--p-muted)}
+  .ph.add .i{width:16px;height:16px}
+
+  .field{background:var(--p-card);border:.5px solid var(--p-line);border-radius:11px;padding:9px 11px}
+  .field .in{font-size:13px;font-weight:600;margin-top:3px}
+
+  .btn{border-radius:11px;padding:12px;text-align:center;font-size:13.5px;font-weight:700;background:var(--brand);color:#fff;
+    display:flex;align-items:center;justify-content:center;gap:7px}
+  .btn .i{width:15px;height:15px;stroke-width:2.4}
+  .btn.sec{background:var(--p-card);border:.5px solid var(--p-line);color:var(--p-ink2)}
+  .foot{padding:11px 14px;background:var(--p-card);border-top:.5px solid var(--p-line);flex-shrink:0;display:flex;gap:9px}
+  .foot > *{flex:1}
+
+  .sigbox{background:var(--p-card);border:1.5px dashed #c3cfd7;border-radius:12px;height:72px;display:flex;align-items:center;
+    justify-content:center;gap:7px;color:var(--p-muted);font-size:11.5px;font-weight:600}
+  .sigbox .i{width:15px;height:15px}
+  .sigbox.signed{border-style:solid;border-color:var(--ok);background:var(--ok-bg)}
+  .done-hero{text-align:center;padding:10px 0 2px}
+  .done-hero .ring{width:64px;height:64px;border-radius:50%;background:var(--ok-bg);border:2px solid var(--ok);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 11px;color:var(--ok)}
+  .done-hero .ring .i{width:30px;height:30px;stroke-width:3}
+  .done-hero .t{font-size:17px;font-weight:800}
+  .done-hero .s{font-size:11.5px;color:var(--p-muted);margin-top:3px;line-height:1.5}
+  .lock{background:#f0f3f5;border-radius:10px;padding:9px 11px;font-size:10.5px;color:var(--p-ink2);line-height:1.5;
+    display:flex;gap:8px;align-items:flex-start}
+  .lock .i{width:13px;height:13px;flex-shrink:0;margin-top:1px;color:var(--p-muted)}
+
+  .why{max-width:1560px;margin:0 auto;padding:4px 34px 70px}
+  .why .box{background:rgba(255,255,255,.04);border:.5px solid var(--line);border-radius:18px;padding:22px 26px}
+  .why h3{font-size:14.5px;font-weight:800;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+  .why h3 .i{width:18px;height:18px;color:var(--brand2)}
+  .why .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:18px}
+  .why .k{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--brand2);margin-bottom:5px;
+    display:flex;align-items:center;gap:7px}
+  .why .k .i{width:14px;height:14px}
+  .why .v{font-size:12.5px;color:var(--ink2);line-height:1.6}
+  .why code{background:rgba(255,255,255,.08);padding:1px 6px;border-radius:5px;font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="glow"><b class="a"></b><b class="b"></b><b class="c"></b></div>
+<div class="grain"></div>
+<div class="shell">
+
+<header>
+  <!-- Proofly mark: a verified record -->
+  <svg width="42" height="42" viewBox="0 0 48 48" aria-label="Proofly">
+    <defs>
+      <linearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#16D9A8"/><stop offset="1" stop-color="#0A7A5F"/>
+      </linearGradient>
+    </defs>
+    <rect width="48" height="48" rx="14" fill="url(#pg)"/>
+    <path d="M16 11h11l6 6v20a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2V13a2 2 0 0 1 2-2z" fill="rgba(255,255,255,.20)"/>
+    <path d="M27 11v5a1.5 1.5 0 0 0 1.5 1.5H33" fill="rgba(255,255,255,.34)"/>
+    <path d="M18.5 26.5l4.2 4.2L30.5 23" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div><div class="bname">Proofly</div><div class="btag">go · check · sign · proof</div></div>
+  <div class="byline">
+    <span>mockup v1</span><span class="sep"></span>
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+      <rect width="32" height="32" rx="9" fill="#171d26" stroke="rgba(255,255,255,.1)"/>
+      <circle cx="11" cy="13" r="3.4" fill="#D85A30"/><circle cx="21" cy="13" r="3.4" fill="#EF9F27"/>
+      <circle cx="16" cy="21" r="3.4" fill="#8B82F5"/>
+    </svg>
+    <span class="mnj"><span class="m">M</span><span class="n">N</span>&amp;<span class="j">J</span> Labs</span>
+  </div>
+</header>
+
+<section class="intro">
+  <h1>One app. <span class="g">Any business that has to prove it checked something.</span></h1>
+  <p>Fill the form on site, attach photos, get a signature — and a PDF proof is emailed before you leave the
+     building. The five screens below are the whole product. <b>Flip the switch</b> to watch the same app serve
+     a completely different business.</p>
+</section>
+
+<section class="switch">
+  <span class="lbl">Business type</span>
+  <div class="seg" id="seg"></div>
+  <span class="persona" id="persona"></span>
+</section>
+
+<div class="rail" id="rail"></div>
+
+<section class="why">
+  <div class="box">
+    <h3 id="whyH"></h3>
+    <div class="grid" id="whyG"></div>
+  </div>
+</section>
+</div>
+
+<script>
+/* ── inline icon set ───────────────────────────────────────────── */
+const P = {
+  building:'M3 21h18M5 21V8l7-4 7 4v13M9 10h2M9 14h2M9 18h2M15 10h1M15 14h1M15 18h1',
+  box:'M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9',
+  check:'M5 12.5l4.5 4.5L19 7',
+  clock:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18M12 7.5V12l3 2',
+  file:'M14 3v4a1 1 0 0 0 1 1h4M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z',
+  lock:'M5.5 11h13a1 1 0 0 1 1 1v7.5a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1V12a1 1 0 0 1 1-1zM8 11V7.5a4 4 0 0 1 8 0V11',
+  pen:'M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16v4M13.5 6.5l4 4',
+  alert:'M12 9.5v4M10.4 3.6L2.3 17.1A1.9 1.9 0 0 0 3.9 20h16.2a1.9 1.9 0 0 0 1.6-2.9L13.6 3.6a1.9 1.9 0 0 0-3.2 0zM12 17h.01',
+  camera:'M5 8h2.5L9 6h6l1.5 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM12 17.5a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7',
+  plus:'M12 5.5v13M5.5 12h13',
+  mail:'M3.5 7.5l8.5 5.5 8.5-5.5M4 5.5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z',
+  chevL:'M14.5 6l-6 6 6 6',
+  chevR:'M9.5 6l6 6-6 6',
+  gauge:'M12 15a2 2 0 1 0 0-4a2 2 0 0 0 0 4M13.4 11.6L17 8M4.5 19a9.5 9.5 0 1 1 15 0',
+  share:'M12 3.5v12M8 7l4-3.5L16 7M4.5 14.5V19a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4.5',
+  save:'M5 4h11l4 4v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8 4v5h7V4M8 15h8',
+  key:'M12 3v3M12 9v10a2 2 0 0 0 2 2h1M4 12a4 4 0 1 0 8 0a4 4 0 0 0-8 0M20 8l-4 4',
+  layers:'M12 3l9 5-9 5-9-5 9-5M3 13l9 5 9-5M3 17l9 5 9-5',
+  db:'M12 3c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6',
+  snap:'M12 8v5l3 2M12 3a9 9 0 1 1-9 9M3 3v5h5',
+  wifi:'M5 12.5a10 10 0 0 1 14 0M8.5 16a5.5 5.5 0 0 1 7 0M12 19.5h.01',
+};
+const ic = (n,cls)=>`<svg class="i${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]||''}"/></svg>`;
+
+/* photo placeholders that read as real photos */
+const photo = (kind,i)=>{
+  const S = {
+    room:`<defs><linearGradient id="r${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9edf0"/><stop offset="1" stop-color="#b9c6cf"/></linearGradient></defs>
+      <rect width="64" height="64" fill="url(#r${i})"/><path d="M0 44h64v20H0z" fill="#a1907c" opacity=".75"/>
+      <path d="M8 14h20v30H8z" fill="#fff" opacity=".55"/><path d="M40 20h16v24H40z" fill="#8fa0ac" opacity=".5"/>`,
+    crate:`<defs><linearGradient id="c${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dbe3e8"/><stop offset="1" stop-color="#a9b8c2"/></linearGradient></defs>
+      <rect width="64" height="64" fill="url(#c${i})"/>
+      <rect x="8" y="30" width="22" height="20" rx="2" fill="#2f6f8f" opacity=".8"/>
+      <rect x="33" y="30" width="22" height="20" rx="2" fill="#2f6f8f" opacity=".62"/>
+      <rect x="20" y="10" width="22" height="19" rx="2" fill="#3d84a8" opacity=".72"/>`,
+    damage:`<defs><linearGradient id="d${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e5dbd2"/><stop offset="1" stop-color="#b09a88"/></linearGradient></defs>
+      <rect width="64" height="64" fill="url(#d${i})"/>
+      <rect x="6" y="28" width="24" height="22" rx="2" fill="#2f6f8f" opacity=".7"/>
+      <path d="M34 30l20 4-3 18-18-2z" fill="#8a5a3a" opacity=".8"/>
+      <path d="M36 34l16 14M52 34L36 48" stroke="#5c3a22" stroke-width="2" opacity=".8"/>`,
+  };
+  return `<div class="ph"><svg viewBox="0 0 64 64" preserveAspectRatio="xMidYMid slice">${S[kind]}</svg></div>`;
+};
+
+const sbar = `<div class="sbar"><span>9:41</span><span class="rr">${ic('wifi')}<span>87%</span></span></div>`;
+const nav = (t,s,r,ri) => `<div class="nav"><span class="bk">${ic('chevL')}</span>
+  <div><div class="ti">${t}</div>${s?`<div class="sb">${s}</div>`:''}</div>
+  ${r?`<span class="rt">${ri?ic(ri):''}${r}</span>`:''}</div>`;
+
+/* ── content ───────────────────────────────────────────────────── */
+const DATA = {
+  property: {
+    tab:'Property handover', tabIcon:'building',
+    who:'SB', persona:'Stefan Braun — manages 40 rental apartments in Berlin',
+    steps:[{t:"My reports",s:"open the app"},{t:"New report",s:"pick what & where"},
+           {t:"Walk the rooms",s:"the actual work"},{t:"Both sign",s:"on the phone"},{t:"Proof sent",s:"before he leaves"}],
+    screens:[
+      nav("Reports","12 this month","New","plus") + `<div class="body">
+        ${[["Musterstraße 12 · Apt 4B","Move-out · A. Schmidt · 28 Jul","ok","SIGNED"],
+           ["Lindenweg 3 · Apt 1A","Move-in · T. Novak · 26 Jul","draft","DRAFT"],
+           ["Hauptstr. 88 · Apt 2C","Move-out · K. Berg · 21 Jul","ok","SIGNED"],
+           ["Ahornallee 5 · Apt 7","Move-out · M. Roth · 19 Jul","ok","SIGNED"]]
+          .map(r=>`<div class="list-item"><span class="ic">${ic('building')}</span><div class="g1">
+            <div class="nm">${r[0]}</div><div class="xs">${r[1]}</div></div>
+            <span class="pill ${r[2]}">${r[2]==='ok'?ic('check'):ic('clock')}${r[3]}</span></div>`).join('')}
+        <div style="flex:1"></div>
+        <div class="btn">${ic('plus')}New report</div></div>`,
+
+      nav("New report","Apartment handover") + `<div class="body">
+        <div class="field"><div class="lab">Property</div><div class="in">Musterstraße 12 · Apt 4B</div></div>
+        <div class="field"><div class="lab">Tenant</div><div class="in">Anna Schmidt</div></div>
+        <div class="row" style="gap:9px">
+          <div class="field" style="flex:1"><div class="lab">Type</div><div class="in">Move-out</div></div>
+          <div class="field" style="flex:1"><div class="lab">Date</div><div class="in">28 Jul 2026</div></div></div>
+        <div class="lab" style="margin-top:3px">Sections · 0 of 6</div>
+        <div class="sec"><span class="dot now"></span><span class="sn">Meter readings</span><span class="xs">3 values</span></div>
+        <div class="sec"><span class="dot"></span><span class="sn">Kitchen</span></div>
+        <div class="sec"><span class="dot"></span><span class="sn">Bathroom</span></div>
+        <div class="sec"><span class="dot"></span><span class="sn">Living room</span></div>
+        <div style="flex:1"></div></div>
+        <div class="foot"><div class="btn">${ic('chevR')}Start</div></div>`,
+
+      nav("Kitchen","Section 2 of 6","Next","chevR") + `<div class="body">
+        <div class="lab">Overall condition</div>
+        <div class="chips"><span class="chip">Good</span><span class="chip on">${ic('check')}Fair</span><span class="chip">Damaged</span></div>
+        <div class="card"><div class="lab" style="margin-bottom:7px">Checklist</div>
+          <div class="sm" style="display:flex;justify-content:space-between;padding:4px 0"><span>Walls &amp; ceiling</span><span class="pill ok">${ic('check')}OK</span></div>
+          <div class="sm" style="display:flex;justify-content:space-between;padding:4px 0;border-top:.5px solid var(--p-line2)"><span>Floor</span><span class="pill bad">${ic('alert')}SCRATCHED</span></div>
+          <div class="sm" style="display:flex;justify-content:space-between;padding:4px 0;border-top:.5px solid var(--p-line2)"><span>Appliances</span><span class="pill ok">${ic('check')}OK</span></div></div>
+        <div class="lab">Photos · 3</div>
+        <div class="photos">${photo('room',1)}${photo('damage',2)}${photo('room',3)}<div class="ph add">${ic('camera')}</div></div>
+        <div class="field"><div class="lab">Note</div><div class="in" style="font-weight:500;font-size:12px">Scratch ~30 cm in front of the oven.</div></div>
+        <div style="flex:1"></div></div>
+        <div class="foot"><div class="btn sec">${ic('save')}Save</div><div class="btn">Next${ic('chevR')}</div></div>`,
+
+      nav("Signatures","Final step") + `<div class="body">
+        <div class="card"><div class="row"><div style="flex:1"><div class="lab">Report summary</div>
+          <div class="sm" style="margin-top:4px">6 sections · 12 photos · 2 issues</div></div><span class="pill info">READY</span></div></div>
+        <div class="card"><div class="row" style="margin-bottom:7px"><span style="color:var(--brand)">${ic('gauge')}</span><span class="lab">Meter readings</span></div>
+          <div class="sm" style="display:flex;justify-content:space-between"><span>Electricity</span><b>48 213 kWh</b></div>
+          <div class="sm" style="display:flex;justify-content:space-between;margin-top:3px"><span>Gas</span><b>7 940 m³</b></div>
+          <div class="sm" style="display:flex;justify-content:space-between;margin-top:3px"><span>Water</span><b>1 226 m³</b></div></div>
+        <div class="lab">Manager · Stefan Braun</div>
+        <div class="sigbox signed"><svg width="118" height="34" viewBox="0 0 118 34"><path d="M6 24C15 8 23 27 32 15s13 11 22 2 15 8 25-6 22 6 27 2" stroke="#0b7a5f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></div>
+        <div class="lab">Tenant · Anna Schmidt</div>
+        <div class="sigbox">${ic('pen')}Sign here</div>
+        <div style="flex:1"></div>
+        <div class="xs" style="line-height:1.5">Both parties confirm the condition recorded above.</div></div>
+        <div class="foot"><div class="btn">${ic('check')}Finish &amp; send</div></div>`,
+
+      nav("Report complete","Musterstraße 12 · 4B") + `<div class="body">
+        <div class="done-hero"><div class="ring">${ic('check')}</div>
+          <div class="t">Proof sent</div><div class="s">PDF generated and emailed<br>to both parties</div></div>
+        <div class="card"><div class="row"><span class="ic red">${ic('file')}</span><div class="g1">
+          <div class="nm" style="font-size:12px">Handover_Musterstr12_4B.pdf</div>
+          <div class="xs">1.2 MB · 12 photos · signed</div></div></div></div>
+        <div class="card"><div class="row" style="margin-bottom:6px"><span style="color:var(--p-muted)">${ic('mail')}</span><span class="lab">Sent to</span></div>
+          <div class="sm">anna.schmidt@email.de</div><div class="sm" style="margin-top:2px">s.braun@hausverwaltung.de</div></div>
+        <div class="lock">${ic('lock')}<span>This report is locked. Corrections are added as a linked amendment — never by editing the original.</span></div>
+        <div style="flex:1"></div></div>
+        <div class="foot"><div class="btn sec">${ic('share')}Share</div><div class="btn">Done</div></div>`,
+    ]
+  },
+
+  goods: {
+    tab:'Goods receipt', tabIcon:'box',
+    who:'YD', persona:'Yusuf Demir — small grocery shop, 4–6 deliveries a week',
+    steps:[{t:"My deliveries",s:"open the app"},{t:"New delivery",s:"who & what"},
+           {t:"Check the pallet",s:"the actual work"},{t:"Driver signs",s:"on the phone"},{t:"Proof sent",s:"before the van leaves"}],
+    screens:[
+      nav("Deliveries","23 this month","New","plus") + `<div class="body">
+        ${[["Getränke Meyer GmbH","LS-88210 · 2 damaged · 30 Jul","ok","SIGNED"],
+           ["Backwaren Süd","LS-88198 · 29 Jul","draft","DRAFT"],
+           ["Frischwaren Nord","LS-88155 · short 3 units · 27 Jul","ok","SIGNED"],
+           ["Getränke Meyer GmbH","LS-88090 · 24 Jul","ok","SIGNED"]]
+          .map(r=>`<div class="list-item"><span class="ic">${ic('box')}</span><div class="g1">
+            <div class="nm">${r[0]}</div><div class="xs">${r[1]}</div></div>
+            <span class="pill ${r[2]}">${r[2]==='ok'?ic('check'):ic('clock')}${r[3]}</span></div>`).join('')}
+        <div style="flex:1"></div>
+        <div class="btn">${ic('plus')}New delivery</div></div>`,
+
+      nav("New delivery","Goods receipt") + `<div class="body">
+        <div class="field"><div class="lab">Vendor</div><div class="in">Getränke Meyer GmbH</div></div>
+        <div class="field"><div class="lab">Delivery note №</div><div class="in">LS-88210</div></div>
+        <div class="row" style="gap:9px">
+          <div class="field" style="flex:1"><div class="lab">Driver</div><div class="in">M. Kaiser</div></div>
+          <div class="field" style="flex:1"><div class="lab">Date</div><div class="in">30 Jul 2026</div></div></div>
+        <div class="lab" style="margin-top:3px">Items · 0 of 6 checked</div>
+        <div class="sec"><span class="dot now"></span><span class="sn">Mineralwasser 12×0.75</span><span class="xs">20 ord.</span></div>
+        <div class="sec"><span class="dot"></span><span class="sn">Apfelsaft 6×1.0</span><span class="xs">12 ord.</span></div>
+        <div class="sec"><span class="dot"></span><span class="sn">Cola 24×0.33</span><span class="xs">8 ord.</span></div>
+        <div class="sec"><span class="dot"></span><span class="sn">Bier Pils 20×0.5</span><span class="xs">15 ord.</span></div>
+        <div style="flex:1"></div></div>
+        <div class="foot"><div class="btn">${ic('chevR')}Start check</div></div>`,
+
+      nav("Mineralwasser","Item 1 of 6","Next","chevR") + `<div class="body">
+        <div class="row" style="gap:9px">
+          <div class="field" style="flex:1"><div class="lab">Ordered</div><div class="in">20 crates</div></div>
+          <div class="field" style="flex:1"><div class="lab">Received</div><div class="in">18 crates</div></div></div>
+        <div class="lab">Condition</div>
+        <div class="chips"><span class="chip">All good</span><span class="chip warn on">${ic('alert')}2 damaged</span><span class="chip">Rejected</span></div>
+        <div class="card"><div class="row"><span class="ic amber">${ic('alert')}</span><div class="g1">
+          <div class="nm" style="font-size:12px">Short 2 crates</div><div class="xs">Auto-flagged on the PDF</div></div></div></div>
+        <div class="lab">Photos · 3</div>
+        <div class="photos">${photo('crate',4)}${photo('damage',5)}${photo('crate',6)}<div class="ph add">${ic('camera')}</div></div>
+        <div class="field"><div class="lab">Note</div><div class="in" style="font-weight:500;font-size:12px">2 crates crushed on the bottom layer.</div></div>
+        <div style="flex:1"></div></div>
+        <div class="foot"><div class="btn sec">${ic('save')}Save</div><div class="btn">Next${ic('chevR')}</div></div>`,
+
+      nav("Signature","Final step") + `<div class="body">
+        <div class="card"><div class="row"><div style="flex:1"><div class="lab">Delivery summary</div>
+          <div class="sm" style="margin-top:4px">6 items · 7 photos · 1 discrepancy</div></div><span class="pill info">READY</span></div></div>
+        <div class="card"><div class="row" style="margin-bottom:7px"><span style="color:var(--err)">${ic('alert')}</span><span class="lab">Discrepancies</span></div>
+          <div class="sm" style="display:flex;justify-content:space-between"><span>Mineralwasser</span><b style="color:#a32d2d">−2 crates</b></div>
+          <div class="sm" style="display:flex;justify-content:space-between;margin-top:3px"><span>Everything else</span><b style="color:#0b7a5f">complete</b></div></div>
+        <div class="lab">Received by · Yusuf Demir</div>
+        <div class="sigbox signed"><svg width="118" height="34" viewBox="0 0 118 34"><path d="M8 22c12 8 17-15 25-4s10 13 19 0 14 8 23-7 21 8 27 0" stroke="#0b7a5f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></div>
+        <div class="lab">Driver · M. Kaiser</div>
+        <div class="sigbox">${ic('pen')}Sign here</div>
+        <div style="flex:1"></div>
+        <div class="xs" style="line-height:1.5">Driver confirms the quantities and damage recorded above.</div></div>
+        <div class="foot"><div class="btn">${ic('check')}Finish &amp; send</div></div>`,
+
+      nav("Delivery complete","Getränke Meyer · LS-88210") + `<div class="body">
+        <div class="done-hero"><div class="ring">${ic('check')}</div>
+          <div class="t">Proof sent</div><div class="s">PDF generated and emailed to<br>the vendor and your inbox</div></div>
+        <div class="card"><div class="row"><span class="ic red">${ic('file')}</span><div class="g1">
+          <div class="nm" style="font-size:12px">Wareneingang_LS-88210.pdf</div>
+          <div class="xs">0.9 MB · 7 photos · signed</div></div></div></div>
+        <div class="card"><div class="row" style="margin-bottom:6px"><span style="color:var(--p-muted)">${ic('mail')}</span><span class="lab">Sent to</span></div>
+          <div class="sm">buchhaltung@getraenke-meyer.de</div><div class="sm" style="margin-top:2px">yusuf@markt-demir.de</div></div>
+        <div class="lock">${ic('lock')}<span>Locked. The vendor signed for the 2 damaged crates — the credit-note argument is already over.</span></div>
+        <div style="flex:1"></div></div>
+        <div class="foot"><div class="btn sec">${ic('share')}Share</div><div class="btn">Done</div></div>`,
+    ]
+  }
+};
+
+const WHY = [
+  {i:'layers', k:'Same code',       v:'Nothing changed between those two variants except a <b>template document</b> in MongoDB. Sections, field types, labels and who signs are all data.'},
+  {i:'db',     k:'New vertical = new document', v:'Electrician safety test, boiler service, playground inspection, vehicle handover — each is an <code>insert</code>, not a release.'},
+  {i:'snap',   k:'Reports are frozen', v:'Every report stores a <b>snapshot</b> of the template it was filled with, so editing a template never rewrites history. Once signed, it locks.'},
+  {i:'wifi',   k:'Built for no-signal', v:'Everything is captured offline and synced later. Client-generated IDs make retries safe — no duplicate reports.'},
+];
+
+/* ── render ────────────────────────────────────────────────────── */
+document.getElementById('seg').innerHTML = Object.entries(DATA)
+  .map(([k,d],i)=>`<button data-v="${k}"${i===0?' class="on"':''}>${ic(d.tabIcon)}${d.tab}</button>`).join('');
+document.getElementById('whyH').innerHTML = ic('key') + 'Why that switch matters';
+document.getElementById('whyG').innerHTML = WHY.map(w=>
+  `<div><div class="k">${ic(w.i)}${w.k}</div><div class="v">${w.v}</div></div>`).join('');
+
+function render(v){
+  const d = DATA[v];
+  document.getElementById('persona').innerHTML = `<span class="av">${d.who}</span><span>${d.persona}</span>`;
+  document.getElementById('rail').innerHTML = d.screens.map((s,i)=>`
+    <div class="step">
+      <div class="cap"><span class="n">${i+1}</span><div><div class="t">${d.steps[i].t}</div><div class="s">${d.steps[i].s}</div></div></div>
+      <div class="phone"><div class="scr">${sbar}${s}</div></div>
+    </div>`).join('');
+}
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on', x===b));
+  render(b.dataset.v);
+});
+render('property');
+</script>
+</body>
+</html>

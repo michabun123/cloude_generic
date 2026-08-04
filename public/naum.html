@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MN&J Labs — Naum's Command</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  :root{
+    --bg:#0e0c09; --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.03);
+    --line:rgba(255,255,255,.1); --line2:rgba(255,255,255,.06);
+    --ink:#f6f2ea; --ink2:#d6cdb9; --muted:#a1977f;
+    --clay:#FF7A4A; --gold:#F5B133; --purple:#8B82F5;
+    --ok:#3DD9A4; --blue:#5AB0FF;
+    --glow:0 0 0 .5px rgba(255,255,255,.07), 0 12px 44px -12px rgba(0,0,0,.75);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .ic{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+
+  .aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .aurora b{position:absolute;display:block;border-radius:50%;filter:blur(95px);opacity:.5}
+  .aurora .b1{width:600px;height:600px;background:#EF9F27;top:-220px;left:-100px;animation:d1 24s ease-in-out infinite}
+  .aurora .b2{width:520px;height:520px;background:#534AB7;top:-120px;right:-140px;opacity:.4;animation:d2 28s ease-in-out infinite}
+  .aurora .b3{width:480px;height:480px;background:#D85A30;bottom:-240px;left:36%;opacity:.24;animation:d3 32s ease-in-out infinite}
+  @keyframes d1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(80px,60px) scale(1.15)}}
+  @keyframes d2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,70px) scale(1.1)}}
+  @keyframes d3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(50px,-60px) scale(1.18)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 0);background-size:3px 3px}
+  .shell{position:relative;z-index:2}
+
+  header{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:.5px solid var(--line);
+    background:rgba(14,12,9,.66);backdrop-filter:blur(18px) saturate(160%);position:sticky;top:0;z-index:20}
+  header .home{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  header .home:hover{color:var(--ink)}.header .home .ic{width:15px;height:15px}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .brand .m{color:var(--clay)}.brand .n{color:var(--gold)}.brand .j{color:var(--purple)}
+  header .sep{width:1px;height:16px;background:var(--line)}
+  header .tag{font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap}
+  header .who{margin-left:auto;font-size:11.5px;color:var(--gold);display:inline-flex;align-items:center;gap:7px;
+    padding:5px 12px;border-radius:99px;background:rgba(245,177,51,.1);border:.5px solid rgba(245,177,51,.28);white-space:nowrap}
+  @media(max-width:640px){header .tag,header .sep{display:none}}
+
+  .hero{max-width:1180px;margin:0 auto;padding:32px 24px 8px;display:grid;grid-template-columns:300px 1fr;gap:30px;align-items:center}
+  .stage{position:relative;height:270px;border-radius:22px;overflow:hidden;
+    background:radial-gradient(120% 100% at 50% 0%,rgba(245,177,51,.22),transparent 62%),var(--panel2);
+    border:.5px solid var(--line);box-shadow:var(--glow)}
+  .stage::after{content:"";position:absolute;inset:auto 0 0 0;height:64px;background:linear-gradient(to top,rgba(14,12,9,.7),transparent);pointer-events:none}
+  .stage model-viewer{width:100%;height:100%;background:transparent}
+  .stage .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:120px}
+  .stage .hint{position:absolute;left:0;right:0;bottom:9px;text-align:center;font-size:10.5px;color:var(--muted);z-index:3}
+  .hero .ey{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin:0 0 8px}
+  .hero h1{font-size:33px;line-height:1.12;font-weight:700;letter-spacing:-1px;margin:0 0 12px}
+  .hero h1 .grad{background:linear-gradient(100deg,var(--gold),var(--clay) 60%,var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:14.5px;color:var(--ink2);line-height:1.65;margin:0 0 16px;max-width:56ch}
+  .badges{display:flex;gap:8px;flex-wrap:wrap}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:99px;
+    background:rgba(255,255,255,.06);border:.5px solid var(--line);color:var(--ink2)}
+  .badge .ic{width:13px;height:13px;color:var(--gold)}
+  @media(max-width:820px){.hero{grid-template-columns:1fr}.stage{height:220px}.hero h1{font-size:27px}}
+
+  .sec{max-width:1180px;margin:0 auto;padding:26px 24px 4px}
+  .sec h2{font-size:13px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:0 0 14px;display:flex;align-items:center;gap:9px}
+  .sec h2 .ln{flex:1;height:.5px;background:var(--line)}
+
+  /* incoming requirement handed off from the Command Center */
+  .handoff{background:var(--panel);border:.5px solid rgba(245,177,51,.45);border-left:3px solid var(--gold);
+    border-radius:16px;padding:16px 18px;backdrop-filter:blur(10px)}
+  .handoff .hh{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+  .handoff .hb{font-size:10.5px;font-weight:800;letter-spacing:1.1px;color:var(--gold);
+    background:rgba(245,177,51,.13);border-radius:99px;padding:4px 11px}
+  .handoff .ha{font-size:12.5px;font-weight:700;color:var(--ink)}
+  .handoff .hq{margin:0;font:12px/1.65 ui-monospace,Consolas,monospace;color:var(--ink2);white-space:pre-wrap;
+    background:rgba(0,0,0,.26);border-radius:11px;padding:12px 13px;max-height:230px;overflow:auto}
+  .handoff .hact{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+  .hbtn{font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;border:0;border-radius:10px;padding:9px 15px;
+    background:var(--gold);color:#241a06;text-decoration:none;display:inline-flex;align-items:center}
+  .hbtn:hover{filter:brightness(1.07)}
+  .hbtn.alt{background:transparent;border:.5px solid var(--line);color:var(--ink2)}
+  .hbtn.alt:hover{border-color:var(--gold);color:var(--ink)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:13px}
+  .cmd{position:relative;text-align:left;font:inherit;cursor:pointer;background:var(--panel);border:.5px solid var(--line);
+    border-radius:18px;padding:18px;color:var(--ink);backdrop-filter:blur(10px);overflow:hidden;transition:transform .2s,border-color .2s;
+    display:flex;flex-direction:column;gap:9px;text-decoration:none}
+  .cmd:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.22)}
+  .cmd::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac);opacity:.8}
+  .cmd .top{display:flex;align-items:center;gap:11px}
+  .cmd .bx{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--acbg);color:var(--ac)}
+  .cmd .bx .ic{width:20px;height:20px}
+  .cmd .nm{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .cmd .rl{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .cmd .ds{font-size:12.5px;color:var(--ink2);line-height:1.55;flex:1}
+  .cmd .go{font-size:12px;font-weight:600;color:var(--ac);display:inline-flex;align-items:center;gap:6px}
+  .cmd .go .ic{width:14px;height:14px}
+  .foot{max-width:1180px;margin:0 auto;padding:20px 24px 56px;font-size:12px;color:var(--muted);line-height:1.7}
+  .foot code{background:rgba(255,255,255,.08);padding:1.5px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="aurora"><b class="b1"></b><b class="b2"></b><b class="b3"></b></div>
+<div class="grain"></div>
+
+<div class="shell">
+<header>
+  <a class="home" href="/"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg>
+    <span class="brand"><span class="m">M</span><span class="n">N</span>&amp;<span class="j">J</span> Labs</span></a>
+  <span class="sep"></span><span class="tag">Naum's Command</span>
+  <span class="who">👔 Naum · CBO · full access</span>
+</header>
+
+<section class="hero">
+  <div class="stage">
+    <div class="ph" id="ph">👔</div>
+    <div class="hint" id="hint" style="display:none">drag to rotate</div>
+  </div>
+  <div>
+    <div class="ey">Chief Business Officer</div>
+    <h1>Naum, the whole workforce<br><span class="grad">answers to you.</span></h1>
+    <p>Full access — engineering, DevOps, databases, QA <b>and</b> the business org. Point any of them
+       at an outcome, commercial or technical. Pick a command below, or open a console and just talk.</p>
+    <div class="badges">
+      <span class="badge" id="b-eng">◇ 9 engineers</span>
+      <span class="badge" id="b-agents">◇ 3 autonomous agents</span>
+      <span class="badge" id="b-biz">◇ 5 business specialists</span>
+    </div>
+  </div>
+</section>
+
+<!-- Hand-off from the Command Center's "Under Development" cards.
+     Rendered only when the page is opened with a ?q= requirement. -->
+<section class="sec" id="handoffSec" style="display:none">
+  <div class="handoff">
+    <div class="hh"><span class="hb">INCOMING REQUIREMENT</span><span class="ha" id="hoApp"></span></div>
+    <pre class="hq" id="hoQ"></pre>
+    <div class="hact">
+      <a class="hbtn" id="hoGo">Take it to the agent console →</a>
+      <button class="hbtn alt" onclick="hoCopy()">Copy</button>
+      <button class="hbtn alt" onclick="hoDismiss()">Dismiss</button>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2>Talk to the workforce <span class="ln"></span></h2>
+  <div class="grid" id="talk"></div>
+</section>
+
+<section class="sec">
+  <h2>Command the business org <span class="ln"></span></h2>
+  <div class="grid" id="biz"></div>
+</section>
+
+<section class="sec">
+  <h2>Create a document <span class="ln"></span></h2>
+  <div class="grid" id="docs"></div>
+</section>
+
+<section class="sec">
+  <h2>See the whole company <span class="ln"></span></h2>
+  <div class="grid" id="see"></div>
+</section>
+
+<div class="foot">
+  Every card opens the live agent console (<code>/agent.html</code>) or a dashboard. Naum has the same authority as Michael —
+  engineering guardrails still apply (spring-boot is the Java authority; agents confirm before anything destructive or costly).
+  To run the full team from your own machine, see the onboarding pack in <code>c:\myPrograms\mnjlabs\naum-onboarding\</code>.
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ICONS = {
+  robot:'M12 3v2M9 12v2M15 12v2M7 8h10a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM3 13v2M21 13v2',
+  cloud:'M6.66 18A4.5 4.5 0 0 1 6.66 9a5 5 0 0 1 9.12 1.28h.99a3.49 3.49 0 0 1 0 6.97H6.66zM12 13.5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3',
+  database:'M12 3c4.42 0 8 1.34 8 3s-3.58 3-8 3s-8-1.34-8-3s3.58-3 8-3M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6',
+  shield:'M11.46 20.85A12 12 0 0 1 3.5 6.74a12 12 0 0 0 8.5-3.04a12 12 0 0 0 8.5 3.04a12 12 0 0 1-.09 7.06M15 19l2 2l4-4',
+  speaker:'M18 8a3 3 0 0 1 0 6M10 8v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-4M4 8h4l6-4v12l-6-4H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z',
+  handshake:'M12 11l-2-2a2 2 0 0 0-3 0l-3 3M12 11l3 3a2 2 0 0 0 3 0M12 11l2 2M8 14l2 2M20 6l-5 5M4 6l5 5M2 8l2-2h4l3 3M22 8l-2-2h-4l-3 3',
+  money:'M12 3v18M8 8a3 3 0 0 1 3-3h2a2.5 2.5 0 0 1 0 5h-2a2.5 2.5 0 0 0 0 5h2a3 3 0 0 0 3-3',
+  target:'M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 12l9-9M15 3h6v6',
+  heart:'M19.5 12.5L12 20l-7.5-7.5a4.8 4.8 0 0 1 6.7-6.9l.8.8l.8-.8a4.8 4.8 0 0 1 6.7 6.9zM9 12l2 2l4-4',
+  dash:'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-4H4z',
+  chart:'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  arrow:'M5 12h14M13 6l6 6-6 6',
+  doc:'M14 3v4a1 1 0 0 0 1 1h4M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zM9 9h1M9 13h6M9 17h6',
+  page:'M14 3v4a1 1 0 0 0 1 1h4M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zM9 12h6M9 16h4',
+  deck:'M3 4h18v11H3zM8 20h8M12 15v5M7 8l2 3l2-4l2 5l2-3',
+  contract:'M14 3v4a1 1 0 0 0 1 1h4M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2zM9 13l1.5 1.5L13 12M9 17h4',
+  present:'M8 3h8M12 3v3M4 6h16v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM9 21l3-3l3 3',
+  compass:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18M15.5 8.5l-2 5l-5 2l2-5z',
+};
+const naumQ = txt => '/agent.html?a=naum&q=' + encodeURIComponent(txt);
+
+/* ── Requirement hand-off from the Command Center ───────────────────────────
+   dashboards.html sends the typed requirement here as ?q= so the redirect
+   does not lose it. Nothing is sent anywhere — Naum reads it and chooses.   */
+const hoParams = new URLSearchParams(location.search);
+const hoText = hoParams.get('q') || '';
+function hoCopy(){
+  navigator.clipboard?.writeText(hoText).then(()=>{
+    const b = document.querySelector('.hact .alt'); const o = b.textContent;
+    b.textContent = 'copied ✓'; setTimeout(()=> b.textContent = o, 1200);
+  });
+}
+function hoDismiss(){
+  $('handoffSec').style.display = 'none';
+  history.replaceState({}, '', location.pathname);
+}
+if (hoText) {
+  $('hoQ').textContent = hoText;
+  $('hoApp').textContent = hoParams.get('app') || '';
+  $('hoGo').href = naumQ(hoText);
+  $('handoffSec').style.display = '';
+}
+const ico = (n,cls) => `<svg class="ic${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]||''}"/></svg>`;
+
+function card(o){
+  return `<a class="cmd" href="${o.href}" style="--ac:${o.ac};--acbg:${o.bg}">
+    <div class="top"><span class="bx">${ico(o.icon)}</span>
+      <div><div class="nm">${o.nm}</div><div class="rl">${o.rl}</div></div></div>
+    <div class="ds">${o.ds}</div>
+    <div class="go">${o.cta} ${ico('arrow')}</div></a>`;
+}
+
+const GOLD='#F5B133', GBG='rgba(245,177,51,.14)';
+const TALK = [
+  {nm:'Naum console',rl:'you, full access',icon:'robot',ac:GOLD,bg:GBG,href:'/agent.html?a=naum',
+    ds:'Open your own console. Ask for anything — a state-of-the-business, a GTM one-pager, or "have QA verify the demo". It routes across the whole team.',cta:'Open my console'},
+  {nm:'DevOps agent',rl:'cloud & infra',icon:'cloud',ac:'#FFB43D',bg:'rgba(255,180,61,.14)',href:'/agent.html?a=devops-agent',
+    ds:'Deploy, provision, check cluster health on AWS. Drives the CLI directly, confirms before anything costly.',cta:'Command DevOps'},
+  {nm:'DBA agent',rl:'databases',icon:'database',ac:'#3DD9A4',bg:'rgba(61,217,164,.14)',href:'/agent.html?a=dba-agent',
+    ds:'Design schemas, run migrations, tune queries — local Postgres/Mongo and RDS/Atlas.',cta:'Command DBA'},
+  {nm:'QA agent',rl:'quality & tests',icon:'shield',ac:'#5AB0FF',bg:'rgba(90,176,255,.14)',href:'/agent.html?a=qa-agent',
+    ds:'Coverage review, write & run tests, contract-QA the live endpoints, break-it. Every result proven with real output.',cta:'Command QA'},
+  {nm:'Vadim · consultant',rl:'reports to you · advisory',icon:'compass',ac:'#2E8B8B',bg:'rgba(46,139,139,.15)',href:'/agent.html?a=vadim',
+    ds:'Your free external consultant — outside perspective, second opinions, architecture & business reviews, honest risk flags. Advises, doesn\'t execute.',cta:'Ask Vadim'},
+];
+const BIZ = [
+  {nm:'Sales engineering',rl:'sales-engineer skill',icon:'speaker',ac:'#FF7A4A',bg:'rgba(255,122,74,.14)',href:'/agent.html?a=naum',
+    ds:'RFP/bid responses, competitor feature matrices, POC planning. Ask via your console: "draft an RFP response for…".',cta:'Brief via console'},
+  {nm:'Partnerships',rl:'partnerships-architect',icon:'handshake',ac:'#8B82F5',bg:'rgba(139,130,245,.14)',href:'/agent.html?a=naum',
+    ds:'Partner tiering, revshare modeling, joint GTM — e.g. the German GateOn partners.',cta:'Brief via console'},
+  {nm:'Deal desk',rl:'deal-desk skill',icon:'money',ac:'#3DD9A4',bg:'rgba(61,217,164,.14)',href:'/agent.html?a=naum',
+    ds:'Deal review, margin scoring, discount routing, MSA redline triage. Ask: "score this deal…".',cta:'Brief via console'},
+  {nm:'Marketing / PMM',rl:'marketing-strategy-pmm',icon:'target',ac:'#F5B133',bg:GBG,href:'/agent.html?a=naum',
+    ds:'Positioning, GTM, ICP, battlecards, launches. Ask: "position the Notes SaaS for…".',cta:'Brief via console'},
+  {nm:'Customer success',rl:'customer-success-manager',icon:'heart',ac:'#FF6B6B',bg:'rgba(255,107,107,.14)',href:'/agent.html?a=naum',
+    ds:'Health scores, churn risk, expansion recommendations across segments.',cta:'Brief via console'},
+];
+const SEE = [
+  {nm:'Command Center',rl:'live dashboards',icon:'dash',ac:'#8B82F5',bg:'rgba(139,130,245,.14)',href:'/dashboards.html',
+    ds:'Projects, DevOps, DBA and QA — the live state of everything MN&J Labs ships, on one screen.',cta:'Open dashboards'},
+  {nm:'The team',rl:'roster & routing',icon:'chart',ac:'#F5B133',bg:GBG,href:'/',
+    ds:'The full engineering + business roster and who owns what. Back to the company home.',cta:'View the company'},
+];
+
+const DOCS = [
+  {nm:'GTM one-pager',rl:'positioning · ICP · segments',icon:'page',ac:'#F5B133',bg:GBG,
+    href:naumQ('Create a document: a go-to-market one-pager for our Notes SaaS — positioning, ICP, and the first 3 target segments. Save it under c:\\myPrograms\\mnjlabs\\documents as polished HTML and render a PDF.'),
+    ds:'A crisp one-pager — what it is, who it\'s for, and why it wins. Saved as HTML + PDF.',cta:'Create it'},
+  {nm:'Partnership proposal',rl:'tiering · revshare',icon:'contract',ac:'#8B82F5',bg:'rgba(139,130,245,.14)',
+    href:naumQ('Create a document: a partnership proposal for the German GateOn partners — partner tier, joint GTM, and a revshare model with the numbers. Save under c:\\myPrograms\\mnjlabs\\documents as a polished PDF I can send.'),
+    ds:'Partner tier + joint GTM + revshare, formatted to send. Numbers included.',cta:'Create it'},
+  {nm:'Board update',rl:'shipped · cost · asks',icon:'doc',ac:'#3DD9A4',bg:'rgba(61,217,164,.14)',
+    href:naumQ('Create a document: a board / investor update — what shipped this month across MN&J Labs, our AWS cost, and the top 3 asks. Gather the real project state first. Save under c:\\myPrograms\\mnjlabs\\documents as HTML + PDF.'),
+    ds:'Monthly update pulled from real project + cost state. HTML + PDF.',cta:'Create it'},
+  {nm:'Deal / MSA draft',rl:'terms · pricing',icon:'contract',ac:'#FF7A4A',bg:'rgba(255,122,74,.14)',
+    href:naumQ('Create a document: a draft commercial proposal + MSA outline for a new customer (I\'ll give the details) — scope, pricing, and standard terms. Save under c:\\myPrograms\\mnjlabs\\documents. Flag any risky clauses for the deal desk.'),
+    ds:'Proposal + MSA outline with scope, pricing and standard terms.',cta:'Create it'},
+  {nm:'Sales deck outline',rl:'narrative · slides',icon:'present',ac:'#5AB0FF',bg:'rgba(90,176,255,.14)',
+    href:naumQ('Create a document: a sales deck outline for MN&J Labs — the narrative arc and slide-by-slide bullets for a first customer pitch. Save under c:\\myPrograms\\mnjlabs\\documents as HTML.'),
+    ds:'Slide-by-slide narrative for a first customer pitch. Ready to build.',cta:'Create it'},
+  {nm:'Custom document',rl:'you describe it',icon:'doc',ac:'#F5B133',bg:GBG,href:'/agent.html?a=naum',
+    ds:'Anything else — open the console and say "create a document that…". It writes, saves and can render a PDF.',cta:'Open console'},
+];
+
+$('talk').innerHTML = TALK.map(card).join('');
+$('biz').innerHTML  = BIZ.map(card).join('');
+$('docs').innerHTML = DOCS.map(card).join('');
+$('see').innerHTML  = SEE.map(card).join('');
+
+/* 3D Naum if a compressed avatar exists, else the emoji placeholder */
+fetch('/avatars/naum.glb',{method:'HEAD'}).then(r=>{
+  if(r.ok){
+    $('ph').style.display='none'; $('hint').style.display='block';
+    const mv=document.createElement('model-viewer');
+    mv.setAttribute('src','/avatars/naum.glb'); mv.setAttribute('camera-controls','');
+    mv.setAttribute('disable-zoom',''); mv.setAttribute('interaction-prompt','none');
+    mv.setAttribute('exposure','1.15'); mv.setAttribute('shadow-intensity','0.5');
+    mv.setAttribute('camera-orbit','12deg 78deg 100%'); mv.setAttribute('field-of-view','30deg');
+    $('ph').parentElement.insertBefore(mv,$('hint'));
+  }
+}).catch(()=>{});
+</script>
+</body>
+</html>

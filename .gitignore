@@ -1,0 +1,8 @@
+node_modules/
+*.log
+server.log
+server.err.log
+
+# Mail credentials — App Password lives here, never commit it.
+mail-env.ps1
+.env

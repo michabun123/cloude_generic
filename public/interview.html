@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MN&J Labs — Interview Studio</title>
+<style>
+  :root{
+    --bg:#0c0b12; --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.03);
+    --line:rgba(255,255,255,.1); --line2:rgba(255,255,255,.06);
+    --ink:#f3f1fb; --ink2:#cfc9e6; --muted:#918bad;
+    --ac:#8B82F5; --ac2:#B39DFF; --gold:#FFB43D; --ok:#3DD9A4;
+    --glow:0 0 0 .5px rgba(255,255,255,.07), 0 12px 44px -12px rgba(0,0,0,.75);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .ic{width:18px;height:18px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+
+  .aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .aurora b{position:absolute;display:block;border-radius:50%;filter:blur(95px);opacity:.5}
+  .aurora .b1{width:600px;height:600px;background:#534AB7;top:-220px;left:-100px;animation:d1 24s ease-in-out infinite}
+  .aurora .b2{width:520px;height:520px;background:#8B82F5;top:-120px;right:-140px;opacity:.4;animation:d2 28s ease-in-out infinite}
+  .aurora .b3{width:480px;height:480px;background:#D85A30;bottom:-240px;left:38%;opacity:.2;animation:d3 32s ease-in-out infinite}
+  @keyframes d1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(80px,60px) scale(1.15)}}
+  @keyframes d2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,70px) scale(1.1)}}
+  @keyframes d3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(50px,-60px) scale(1.18)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 0);background-size:3px 3px}
+  .shell{position:relative;z-index:2}
+
+  header{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:.5px solid var(--line);background:rgba(12,11,18,.66);backdrop-filter:blur(18px) saturate(160%);position:sticky;top:0;z-index:20}
+  header .home{font-size:13px;color:var(--muted);text-decoration:none;font-weight:500;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  header .home:hover{color:var(--ink)}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .brand .m{color:#FF7A4A}.brand .n{color:#FFB43D}.brand .j{color:#8B82F5}
+  header .sep{width:1px;height:16px;background:var(--line)}
+  header .tag{font-size:13px;font-weight:500;color:var(--ink2);white-space:nowrap}
+  @media(max-width:640px){header .tag,header .sep{display:none}}
+
+  .hero{max-width:1080px;margin:0 auto;padding:30px 24px 6px}
+  .hero .ey{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ac2);margin:0 0 8px;display:flex;align-items:center;gap:8px}
+  .hero h1{font-size:32px;line-height:1.12;font-weight:700;letter-spacing:-1px;margin:0 0 10px}
+  .hero h1 .grad{background:linear-gradient(100deg,var(--ac2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:14.5px;color:var(--ink2);line-height:1.6;margin:0;max-width:60ch}
+
+  .sec{max-width:1080px;margin:0 auto;padding:22px 24px 0}
+  .sec h2{font-size:12.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;gap:9px}
+  .sec h2 .n{font-size:11px;color:var(--ac2);background:rgba(139,130,245,.14);border:.5px solid rgba(139,130,245,.3);padding:1px 8px;border-radius:99px}
+  .sec h2 .ln{flex:1;height:.5px;background:var(--line)}
+
+  .topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:10px}
+  .topic{position:relative;text-align:left;font:inherit;cursor:pointer;background:var(--panel);border:.5px solid var(--line);border-radius:14px;padding:13px 14px;color:var(--ink);backdrop-filter:blur(10px);transition:transform .15s,border-color .15s,background .15s;display:flex;align-items:center;gap:10px}
+  .topic:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.22)}
+  .topic.on{background:rgba(139,130,245,.16);border-color:var(--ac)}
+  .topic .bx{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--tb,rgba(139,130,245,.16));color:var(--tc,var(--ac2))}
+  .topic .bx .ic{width:18px;height:18px}
+  .topic .nm{display:block;font-size:13px;font-weight:600;line-height:1.25}
+  .topic .tk{display:block;font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+  .topic .chk{position:absolute;top:8px;right:9px;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
+  .topic.on .chk{opacity:1;border-color:var(--ac);background:var(--ac)}
+  .topic.on .chk .ic{width:10px;height:10px;color:#fff}
+
+  .segs{display:flex;gap:8px;flex-wrap:wrap}
+  .seg{font:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:11px;border:.5px solid var(--line);background:var(--panel);color:var(--ink2);cursor:pointer;transition:all .15s}
+  .seg:hover{border-color:rgba(255,255,255,.22);color:var(--ink)}
+  .seg.on{background:var(--ac);border-color:var(--ac);color:#fff}
+  .seg .s{display:block;font-size:10.5px;font-weight:400;opacity:.8;margin-top:1px}
+
+  textarea{width:100%;font:inherit;font-size:13.5px;padding:12px 14px;border-radius:12px;border:.5px solid var(--line);background:var(--panel2);color:var(--ink);resize:vertical;min-height:66px;backdrop-filter:blur(10px)}
+  textarea:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px rgba(139,130,245,.18)}
+  textarea::placeholder{color:var(--muted)}
+
+  .cta{max-width:1080px;margin:0 auto;padding:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .start{font:inherit;font-size:15px;font-weight:700;padding:14px 28px;border-radius:14px;border:0;cursor:pointer;color:#fff;background:linear-gradient(100deg,var(--ac),#6D5FEA);box-shadow:0 8px 28px -8px rgba(139,130,245,.7);display:inline-flex;align-items:center;gap:9px;transition:transform .15s,filter .15s}
+  .start:hover{transform:translateY(-2px);filter:brightness(1.06)}
+  .start:disabled{opacity:.45;cursor:default;box-shadow:none;transform:none}
+  .summary{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .summary b{color:var(--ink2)}
+  .foot{max-width:1080px;margin:0 auto;padding:0 24px 56px;font-size:12px;color:var(--muted);line-height:1.7}
+</style>
+</head>
+<body>
+<div class="aurora"><b class="b1"></b><b class="b2"></b><b class="b3"></b></div>
+<div class="grain"></div>
+
+<div class="shell">
+<header>
+  <a class="home" href="/"><svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px"><path d="M5 12h14M5 12l6 6M5 12l6-6"/></svg>
+    <span class="brand"><span class="m">M</span><span class="n">N</span>&amp;<span class="j">J</span> Labs</span></a>
+  <span class="sep"></span><span class="tag">Interview Studio</span>
+</header>
+
+<section class="hero">
+  <div class="ey">🎤 Technical interviewer</div>
+  <h1>Pick your topics.<br><span class="grad">Get grilled — and coached.</span></h1>
+  <p>Choose what to be tested on and how hard. The interviewer runs a realistic mock — one question at a
+     time, real follow-ups, an honest score after each answer, and a focus list at the end.</p>
+</section>
+
+<section class="sec">
+  <h2>Topics <span class="n" id="tcount">pick 1+</span> <span class="ln"></span></h2>
+  <div class="topics" id="topics"></div>
+</section>
+
+<section class="sec">
+  <h2>Level <span class="ln"></span></h2>
+  <div class="segs" id="levels"></div>
+</section>
+
+<section class="sec">
+  <h2>Format <span class="ln"></span></h2>
+  <div class="segs" id="modes"></div>
+</section>
+
+<section class="sec">
+  <h2>Free text — custom focus (optional) <span class="ln"></span></h2>
+  <textarea id="freetext" placeholder="e.g. 'focus on ConcurrentHashMap internals and the N+1 problem', or paste a job description to interview against it…"></textarea>
+</section>
+
+<div class="cta">
+  <button class="start" id="start" disabled><svg class="ic" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg> Start interview</button>
+  <div class="summary" id="summary">Select at least one topic to begin.</div>
+</div>
+
+<div class="foot">
+  The interview runs in the <b>Interviewer console</b> — one question at a time, scored honestly. You can also open it
+  directly at <code>/agent.html?a=interviewer</code> and just say what you want. Powered by the <code>interviewer</code> skill.
+</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ICONS = {
+  gear:'M12 8.5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7M19.4 13a7.5 7.5 0 0 0 0-2l2-1.5l-2-3.5l-2.4 1a7.5 7.5 0 0 0-1.7-1l-.3-2.5h-4l-.3 2.5a7.5 7.5 0 0 0-1.7 1l-2.4-1l-2 3.5l2 1.5a7.5 7.5 0 0 0 0 2l-2 1.5l2 3.5l2.4-1a7.5 7.5 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7.5 7.5 0 0 0 1.7-1l2.4 1l2-3.5z',
+  puzzle:'M10 3h4v3a2 2 0 0 0 4 0V3h3v4h-3a2 2 0 0 0 0 4h3v4h-4a2 2 0 0 1-4 0H10a2 2 0 0 1-4 0H3v-4h3a2 2 0 0 0 0-4H3V6h3a2 2 0 0 1 4 0z',
+  branch:'M6 3v12M6 21a3 3 0 1 0 0-6a3 3 0 0 0 0 6M18 9a3 3 0 1 0 0-6a3 3 0 0 0 0 6M18 9c0 6-6 3-6 9',
+  coffee:'M4 8h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 9h2a2 2 0 0 1 0 4h-2M6 2v2M10 2v2M14 2v2',
+  leaf:'M5 21c.5-4.5 2.5-8 7-10M9 18c6.22 0 10.5-3.29 11-12V4h-4.01C7 4 4 8 4 13c0 1 0 3 2 5z',
+  server:'M4 4h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM4 14h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1zM7 7h.01M7 17h.01',
+  node:'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 8v8M8.5 6.2l7 4.1',
+  ts:'M4 4h16v16H4zM10 12h5M12.5 12v6M9 12H6',
+  kotlin:'M4 4h16L12 12l8 8H4z',
+  go:'M3 10h5M2 14h5M9 7c4-1 9-1 11 2s-1 8-6 8s-8-3-6-6M17 11h.01',
+  db:'M12 3c4.42 0 8 1.34 8 3s-3.58 3-8 3s-8-1.34-8-3s3.58-3 8-3M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6',
+  bolt:'M13 2L4 14h7l-1 8 9-12h-7z',
+  api:'M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M19 5l-3 3M8 16l-3 3M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8',
+  cloud:'M6.66 18A4.5 4.5 0 0 1 6.66 9a5 5 0 0 1 9.12 1.28h.99a3.49 3.49 0 0 1 0 6.97H6.66',
+  chat:'M21 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2zM8 9h8M8 13h5',
+  check:'M5 12l4 4L19 7',
+};
+const ico = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]||''}"/></svg>`;
+
+const TOPICS = [
+  {k:'eng',    nm:'Engineering fundamentals', tk:'OOP · SOLID · clean code', icon:'gear',   c:'#B39DFF',bg:'rgba(139,130,245,.16)'},
+  {k:'dp',     nm:'Design Patterns',          tk:'GoF + enterprise',         icon:'puzzle', c:'#B39DFF',bg:'rgba(139,130,245,.16)'},
+  {k:'algo',   nm:'Algorithms & DS',          tk:'LeetCode-medium bar',      icon:'branch', c:'#FFB43D',bg:'rgba(255,180,61,.16)'},
+  {k:'java',   nm:'Java core',                tk:'collections · concurrency',icon:'coffee', c:'#FF9E6B',bg:'rgba(255,122,74,.16)'},
+  {k:'spring', nm:'Spring Boot',              tk:'DI · @Transactional · JPA',icon:'leaf',   c:'#3DD9A4',bg:'rgba(61,217,164,.16)'},
+  {k:'design', nm:'System Design',            tk:'the 6-phase hour',         icon:'server', c:'#5AB0FF',bg:'rgba(90,176,255,.16)'},
+  {k:'node',   nm:'Node.js',                  tk:'event loop · streams',     icon:'node',   c:'#8FCB5F',bg:'rgba(99,153,34,.18)'},
+  {k:'ts',     nm:'TypeScript',               tk:'types · generics · narrowing',icon:'ts',  c:'#5AB0FF',bg:'rgba(90,176,255,.16)'},
+  {k:'kotlin', nm:'Kotlin',                   tk:'coroutines · null-safety', icon:'kotlin', c:'#B39DFF',bg:'rgba(139,130,245,.16)'},
+  {k:'go',     nm:'Go',                       tk:'goroutines · channels · ctx',icon:'go',   c:'#7FE0F0',bg:'rgba(0,173,216,.16)'},
+  {k:'db',     nm:'Databases',                tk:'SQL vs NoSQL · indexing',  icon:'db',     c:'#3DD9A4',bg:'rgba(61,217,164,.16)'},
+  {k:'conc',   nm:'Concurrency',              tk:'threads · locks · async',  icon:'bolt',   c:'#FFB43D',bg:'rgba(255,180,61,.16)'},
+  {k:'api',    nm:'REST / API design',        tk:'idempotency · versioning', icon:'api',    c:'#5AB0FF',bg:'rgba(90,176,255,.16)'},
+  {k:'cloud',  nm:'AWS / Cloud',              tk:'ECS · Lambda · scaling',   icon:'cloud',  c:'#FFB43D',bg:'rgba(255,180,61,.16)'},
+  {k:'batch',  nm:'Batch & scale',            tk:'scan · outbox · batching', icon:'bolt',   c:'#FFB43D',bg:'rgba(255,180,61,.16)'},
+  {k:'behav',  nm:'Behavioral',               tk:'STAR · leadership',        icon:'chat',   c:'#FF9E6B',bg:'rgba(255,122,74,.16)'},
+];
+const LEVELS = [
+  {k:'Junior', s:'0-2 yrs'}, {k:'Mid', s:'2-5 yrs'}, {k:'Senior', s:'5-10 yrs'}, {k:'Staff', s:'10+ / lead'},
+];
+const MODES = [
+  {k:'Quick-fire', s:'10 short Qs'}, {k:'Deep-dive', s:'one topic, 3 levels'}, {k:'Full mock', s:'45-60 min'},
+];
+
+const state = { topics:new Set(), level:'Senior', mode:'Full mock' };
+
+$('topics').innerHTML = TOPICS.map(t=>`
+  <button class="topic" data-k="${t.k}" style="--tc:${t.c};--tb:${t.bg}">
+    <span class="bx">${ico(t.icon)}</span>
+    <span><span class="nm">${t.nm}</span><span class="tk">${t.tk}</span></span>
+    <span class="chk">${ico('check')}</span>
+  </button>`).join('');
+$('levels').innerHTML = LEVELS.map((l,i)=>`<button class="seg${l.k==='Senior'?' on':''}" data-lv="${l.k}">${l.k}<span class="s">${l.s}</span></button>`).join('');
+$('modes').innerHTML  = MODES.map((m,i)=>`<button class="seg${m.k==='Full mock'?' on':''}" data-md="${m.k}">${m.k}<span class="s">${m.s}</span></button>`).join('');
+
+document.querySelectorAll('.topic').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.k;
+  if(state.topics.has(k)){ state.topics.delete(k); b.classList.remove('on'); }
+  else { state.topics.add(k); b.classList.add('on'); }
+  refresh();
+});
+document.querySelectorAll('#levels .seg').forEach(b=>b.onclick=()=>{
+  state.level=b.dataset.lv; document.querySelectorAll('#levels .seg').forEach(x=>x.classList.toggle('on',x===b)); refresh();
+});
+document.querySelectorAll('#modes .seg').forEach(b=>b.onclick=()=>{
+  state.mode=b.dataset.md; document.querySelectorAll('#modes .seg').forEach(x=>x.classList.toggle('on',x===b)); refresh();
+});
+
+function names(){ return TOPICS.filter(t=>state.topics.has(t.k)).map(t=>t.nm); }
+function refresh(){
+  const n=state.topics.size;
+  $('tcount').textContent = n ? n+' selected' : 'pick 1+';
+  $('start').disabled = n===0;
+  $('summary').innerHTML = n===0 ? 'Select at least one topic to begin.'
+    : `<b>${state.mode}</b> · <b>${state.level}</b> level · ${n} topic${n>1?'s':''}: ${names().join(', ')}`;
+}
+
+$('start').onclick=()=>{
+  if(state.topics.size===0) return;
+  const free=$('freetext').value.trim();
+  let p = `Run a ${state.mode} technical interview at ${state.level} level. `
+    + `Cover these topics: ${names().join(', ')}. `
+    + (free ? `Special focus: ${free}. ` : '')
+    + `Follow the interviewer skill: ONE question at a time, wait for my answer, press a follow-up, then score 1-5 with the gap and a brief model answer before moving on. `
+    + `Adapt the difficulty to my answers and end with a focus list. Start now with your first question.`;
+  location.href = '/agent.html?a=interviewer&go=1&q=' + encodeURIComponent(p);
+};
+refresh();
+</script>
+</body>
+</html>

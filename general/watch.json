@@ -1,0 +1,6 @@
+{
+  "agent": "devops-agent",
+  "file": "C:/claude/generic/general/instructions.txt",
+  "intervalSec": 30,
+  "enabled": false
+}

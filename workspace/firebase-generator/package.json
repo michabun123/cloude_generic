@@ -1,0 +1,21 @@
+{
+  "name": "firebase-generator",
+  "version": "1.0.0",
+  "description": "A CLI tool to scaffold Firebase project configuration and boilerplate",
+  "main": "src/index.js",
+  "bin": {
+    "firebase-generator": "bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js",
+    "test": "node test/run-tests.js"
+  },
+  "keywords": [
+    "firebase",
+    "generator",
+    "scaffold",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT"
+}
