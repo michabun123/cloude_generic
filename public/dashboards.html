@@ -332,9 +332,75 @@ const NAV = [
 const TEAM = {
   naum:  { label:'Naum',  role:'CBO',        email:'naumamail@gmail.com', page:'/naum.html' },
   vadim: { label:'Vadim', role:'Consultant', email:'',                    page:'' },
+  // Placeholder address until Lena has a real mailbox on the domain.
+  lena:  { label:'Lena',  role:'Financial Director', email:'lena@mnjlabs.com', page:'/lena.html' },
 };
 
 const WIP = [
+  {
+    name:'shortlink', tagline:'Node.js + TypeScript reference service', ac:'#639922', bg:'rgba(99,153,34,.14)', icon:'link',
+    stage:'INTERVIEW PREP', pct:35,
+    what:'A URL shortener built as a <b>teaching service</b> for the Node/TS interview track. Tiny domain, but a deliberate ladder from trivial to hard: in-memory today, then persistence, caching, rate limiting, analytics, streaming and worker threads. Layered exactly like the Spring Boot services so the architecture transfers.',
+    verticals:['Interview practice','Node/TS reference'],
+    stack:['Node 20','TypeScript (strict)','Express 4','zod','vitest + supertest','tsx','swagger-ui-express'],
+    layers:[
+      ['Layered scaffold — routes / services / repository','done'],
+      ['zod validation + central error handler','done'],
+      ['In-memory repository behind an interface','done'],
+      ['14 integration tests (supertest), all green','done'],
+      ['OpenAPI generated from the zod schemas + Swagger UI','done'],
+      ['Demo UI showing every API call live','done'],
+      ['Exercise: persistence (Postgres or SQLite)','next'],
+      ['Exercise: caching + rate limiting','todo'],
+      ['Exercise: analytics, streaming export, worker threads','todo'],
+      ['Exercise: auth (JWT) + multi-tenant links','todo'],
+    ],
+    links:[
+      ['Demo UI','http://localhost:8099/','eye'],
+      ['Swagger UI','http://localhost:8099/docs','browser'],
+      ['OpenAPI spec','http://localhost:8099/openapi.json','note'],
+      ['Health','http://localhost:8099/health','pulse'],
+    ],
+    paths:['c:\\myPrograms\\mnjlabs\\frontend\\shortlink'],
+    agent:'naum',
+
+    local:{
+      start:[
+        ['1 · Install','cd c:\\myPrograms\\mnjlabs\\frontend\\shortlink  &&  npm install'],
+        ['2 · Run','npm start          (tsx, no build step)'],
+        ['3 · Watch mode','npm run dev'],
+        ['4 · Tests','npm test           (vitest + supertest, 14 tests)'],
+        ['5 · Typecheck','npm run typecheck'],
+      ],
+      endpoints:[
+        ['Demo UI','http://localhost:8099/'],
+        ['Swagger UI','http://localhost:8099/docs'],
+        ['OpenAPI spec','http://localhost:8099/openapi.json'],
+        ['Health','http://localhost:8099/health'],
+        ['REST base','http://localhost:8099/api/links'],
+      ],
+      db:{
+        engine:'None yet — in-memory Map behind a repository interface',
+        rows:[
+          ['Storage','src/lib/linkRepository.ts'],
+          ['Interface','LinkRepository'],
+          ['Implementation','InMemoryLinkRepository'],
+          ['Swap point','one file — the service and its tests do not change'],
+        ],
+        note:'Deliberately no database yet. Adding one is the first live exercise, and the repository interface is the seam that makes it a one-file change.'
+      }
+    },
+
+    cloud:{
+      env:'Not deployed — local only',
+      rows:[
+        ['Status','interview-prep project, runs on localhost:8099'],
+        ['Port','8099 (local only)'],
+      ],
+      warn:'Built for practice, not for production: data is in memory and disappears on restart. No auth, no rate limiting yet — both are planned exercises.'
+    },
+  },
+
   {
     name:'Proofly', tagline:'go · check · sign · proof', ac:'#0EA37F', bg:'rgba(14,163,127,.14)', icon:'shield',
     stage:'IN DEVELOPMENT', pct:55,

@@ -95,8 +95,31 @@ function Clear-ProjectPort([int]$p) {
   }
 }
 
+# Pull a variable from the User/Machine environment into THIS process if it is
+# missing. A process inherits the environment as it was when its PARENT started,
+# so a key added to Windows afterwards is invisible to any shell already open -
+# which is exactly why the agents reported "no Anthropic credentials" while the
+# key was plainly set in System Properties.
+function Import-UserEnv([string]$Name) {
+  if ([Environment]::GetEnvironmentVariable($Name, 'Process')) { return $true }
+  foreach ($scope in 'User', 'Machine') {
+    $v = [Environment]::GetEnvironmentVariable($Name, $scope)
+    if ($v) {
+      [Environment]::SetEnvironmentVariable($Name, $v, 'Process')
+      Write-Host "  $Name loaded from $scope environment" -ForegroundColor DarkGray
+      return $true
+    }
+  }
+  return $false
+}
+
 function Start-Server {
   if (Get-ServerPid) { Write-Host "Already running." -ForegroundColor Yellow; Show-Status; return }
+  if (-not (Import-UserEnv 'ANTHROPIC_API_KEY')) {
+    if (-not (Import-UserEnv 'ANTHROPIC_AUTH_TOKEN')) {
+      Write-Host "  no ANTHROPIC_API_KEY found - the agents will not run" -ForegroundColor Yellow
+    }
+  }
   Write-Host "Starting server..." -ForegroundColor Cyan
   Start-Process -FilePath 'node' -ArgumentList 'server.js' -WorkingDirectory $Dir `
     -WindowStyle Hidden -RedirectStandardOutput $Log -RedirectStandardError (Join-Path $Dir 'server.err.log')

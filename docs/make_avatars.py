@@ -29,6 +29,7 @@ SPEC = {
     'michael': ('michael1.png', 0.48, 0.45, 1.00, 'contain'),
     'naum':    ('naum.jpg',     0.50, 0.34, 0.92, 'crop'),
     'vadim':   ('vadim.jpg',    0.50, 0.45, 0.98, 'crop'),
+    'lena':    ('lena_main.png',0.49, 0.36, 1.00, 'crop'),
 }
 
 

@@ -160,11 +160,15 @@ function renderPersona(){
   $("pname").textContent = a.title; $("ptag").textContent = a.tagline;
   $("pwired").innerHTML = ac.wired;
   $("c-ci").textContent = ac.ci; $("c-ct").textContent = a.title;
-  // avatar: 3D glb if present, else image, else emoji
+  // avatar: 3D glb if present, else image, else emoji.
+  // An agent can opt out of the glb with preferImage — used where a picture says
+  // more than a model (the Interviewer cartoon beats a floating microphone).
   const frame = $("frame"), glb = "/avatars/"+a.key+".glb";
-  fetch(glb,{method:"HEAD"}).then(r=>{
+  const showImage = () => { frame.innerHTML = '<img class="av" src="'+a.avatar+'" alt="'+a.title+'" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'av emoji\',textContent:ACCENTCI()}))">'; };
+  if (a.preferImage && a.avatar) { showImage(); }
+  else fetch(glb,{method:"HEAD"}).then(r=>{
     if(r.ok){ frame.innerHTML = '<model-viewer class="av" src="'+glb+'" camera-controls autoplay disable-zoom interaction-prompt="none" exposure="1.05" shadow-intensity="0.4"></model-viewer>'; }
-    else { frame.innerHTML = '<img class="av" src="'+a.avatar+'" alt="'+a.title+'" onerror="this.replaceWith(Object.assign(document.createElement(\'div\'),{className:\'av emoji\',textContent:ACCENTCI()}))">'; }
+    else showImage();
   }).catch(()=>{ frame.innerHTML = '<div class="av emoji">'+ac.ci+'</div>'; });
   window.ACCENTCI = ()=>ac.ci;
   $("log").innerHTML = ""; addBubble(a.greeting,"agent");

@@ -11,6 +11,40 @@
     --bg:#faf9f5; --panel:#ffffff; --line:#e7e5df; --ink:#1a1a18; --muted:#5f5e5a;
     --accent:#185fa5; --accent-bg:#e6f1fb; --ok:#0f6e56; --warn:#854f0b; --warn-bg:#faeeda; --err:#a32d2d;
   }
+  /* ── hero banner ─────────────────────────────────────────────────────────
+     Composed rather than a flat image, so the wordmark stays crisp at any size
+     and the artwork is never cropped through a face. */
+  .banner{flex:1;min-width:0;height:300px;border-radius:14px;border:0.5px solid var(--line);
+    background:linear-gradient(115deg,#fdf6ef 0%,#f4f1fb 48%,#eef4fc 100%);
+    position:relative;overflow:hidden;display:flex;align-items:center}
+  /* container-type lets the headline size itself against THIS column rather than
+     the viewport, so "humans + AI, shipping together" stays on one line and grows
+     to whatever the available width allows. */
+  .banner .btxt{padding:20px 6px 20px 22px;flex:1;min-width:0;container-type:inline-size}
+  .banner .bey{font-size:13px;font-weight:800;letter-spacing:.4px;color:#8a6a4a;margin:0 0 10px}
+  .banner .bey span{color:#c2703a}
+  .banner h2{font-size:clamp(17px,6.6cqw,40px);white-space:nowrap;line-height:1.2;font-weight:800;letter-spacing:-.9px;margin:0 0 12px;
+    background:linear-gradient(100deg,#c2703a,#7b5cc9 62%,#185fa5);-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .banner p{font-size:13px;line-height:1.6;color:var(--muted);margin:0;max-width:34ch}
+  /* A flex COLUMN, not an absolutely-positioned overlay: at narrow widths the
+     overlay version ran the artwork across the headline. As a real column the
+     two can never collide. contain + bottom anchor keeps the crew uncropped and
+     standing on the base line. */
+  /* A live model, not an image: model-viewer draws to a canvas, so object-fit
+     and mix-blend-mode do nothing here — it needs real width/height instead.
+     Transparent background lets the banner gradient show through. */
+  .banner .bimg{width:31%;flex:none;height:100%;background:transparent;--poster-color:transparent}
+  .figcard{flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;
+    border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;padding:8px}
+  .figcard img{max-width:100%;max-height:100%;object-fit:contain;mix-blend-mode:multiply}
+  /* No font-size override here: the cqw clamp above already sizes the headline to
+     its column. A fixed px value would fight it and overflow the one-line rule. */
+  @media(max-width:1250px){
+    .banner p{display:none}
+    .banner .btxt{padding-left:18px}
+  }
+
   *{box-sizing:border-box}
   body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--bg)}
   header{display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:0.5px solid var(--line);background:var(--panel);box-shadow:0 1px 2px rgba(16,24,40,.03)}
@@ -118,9 +152,16 @@
 <div class="wrap">
   <div class="left">
     <div id="hero" style="display:flex;gap:10px;margin:0 0 10px;align-items:stretch">
-      <img src="/brand.png" alt="MN&amp;J Labs — humans + AI, shipping together"
-           style="flex:1;min-width:0;height:300px;object-fit:cover;border-radius:14px;border:0.5px solid var(--line)">
-      <div style="width:170px;display:flex;flex-direction:column;gap:10px">
+      <div class="banner">
+        <div class="btxt">
+          <div class="bey">MN<span>&amp;</span>J Labs</div>
+          <h2>humans + AI, shipping together</h2>
+          <p>One human, one AI lead, and a bench of specialists — design, build, deploy, test.</p>
+        </div>
+        <model-viewer class="bimg" src="/hero/together.glb" alt="Michael and Joseph — humans and AI, shipping together"
+          loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"></model-viewer>
+      </div>
+      <div style="width:132px;display:flex;flex-direction:column;gap:10px">
         <model-viewer src="/michael.glb" loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
           style="flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;border:0.5px solid var(--line)"></model-viewer>
         <model-viewer src="/joseph.glb" loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
@@ -243,6 +284,8 @@
     const prompt = (e.data.prompt || "").trim();
     // Agent actions (Run devops-agent / Open DevOps panel / etc.) → open the Agent Console
     if (/\bnaum-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=naum"; return; }
+    if (prompt === "/lena-page") { window.location.href = "/lena.html"; return; }
+    if (/\blena\b/i.test(prompt)) { window.location.href = "/agent.html?a=lena"; return; }
     if (/\bvadim-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=vadim"; return; }
     if (prompt === "/interview") { window.location.href = "/interview.html"; return; }
     const am = prompt.match(/\b(devops|dba|qa)-agent\b/);

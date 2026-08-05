@@ -13,6 +13,21 @@ Set-Location -Path $PSScriptRoot
 
 # 1. Mail credentials. The secret lives ONLY in mail-env.ps1 (gitignored), never
 #    in a run configuration, so this script is safe to commit.
+# A process inherits the environment as it was when its parent started, so a key
+# added to Windows after this shell opened is invisible here. Pull it in explicitly.
+foreach ($n in 'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN') {
+  if (-not [Environment]::GetEnvironmentVariable($n, 'Process')) {
+    foreach ($scope in 'User', 'Machine') {
+      $v = [Environment]::GetEnvironmentVariable($n, $scope)
+      if ($v) {
+        [Environment]::SetEnvironmentVariable($n, $v, 'Process')
+        Write-Host "  $n loaded from $scope environment" -ForegroundColor DarkGray
+        break
+      }
+    }
+  }
+}
+
 $envFile = Join-Path $PSScriptRoot "mail-env.ps1"
 if (Test-Path $envFile) {
   . $envFile

@@ -183,6 +183,7 @@ const P = {
   dash:'M4 13h6V4H4zM14 20h6V4h-6zM4 20h6v-4H4z',
   sword:'M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2',
   mic:'M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8',
+  coin:'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18M12 7v10M9.5 9.5A2.5 2.5 0 0 1 12 7h.5a2 2 0 0 1 0 4h-1a2 2 0 0 0 0 4h.5a2.5 2.5 0 0 0 2.5-2.5',
 };
 const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]||''}"/></svg>`;
 
@@ -201,6 +202,8 @@ const MODELS = [
     ac:'#F5B133', desc:'CBO · business robot', tags:['agent console'] },
   { group:'Team', name:'Vadim', file:'/avatars/vadim.glb', icon:'compass',
     ac:'#2E8B8B', desc:'External consultant · advisory', tags:['agent console'] },
+  { group:'Team', name:'Lena', file:'/avatars/lena.glb', icon:'coin',
+    ac:'#1D9E75', desc:'Financial Director · owns the numbers', tags:['agent console','finance page'] },
 
   { group:'Agents', name:'DevOps Agent', file:'/avatars/devops-agent.glb', icon:'cloud',
     ac:'#FFB43D', desc:'Cloud & infra', tags:['agent console'] },
@@ -209,7 +212,7 @@ const MODELS = [
   { group:'Agents', name:'QA Agent', file:'/avatars/qa-agent.glb', icon:'shield',
     ac:'#5AB0FF', desc:'Testing & quality', tags:['agent console'] },
   { group:'Agents', name:'Interviewer', file:'/avatars/interviewer.glb', icon:'mic',
-    ac:'#8B82F5', desc:'Mock interviews · microphone', tags:['agent console','interview studio'] },
+    ac:'#8B82F5', desc:'Mock interviews · candidate + robot', tags:['agent console','interview studio'] },
 ];
 
 const $ = id => document.getElementById(id);
