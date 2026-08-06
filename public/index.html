@@ -38,6 +38,28 @@
   .figcard{flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;
     border:0.5px solid var(--line);display:flex;align-items:center;justify-content:center;padding:8px}
   .figcard img{max-width:100%;max-height:100%;object-fit:contain;mix-blend-mode:multiply}
+  /* ── motion ───────────────────────────────────────────────────────────────
+     The models carry no baked animation clips, so `autoplay` does nothing — the
+     movement has to come from us. Two cheap, GPU-friendly layers:
+       1. a slow vertical float on the element (CSS transform, no repaint)
+       2. a gentle camera sway driven in JS (see the script below)
+     The two figures float on DIFFERENT durations and offsets, so they drift out
+     of phase — in sync they read as one mechanical object rather than two. */
+  @keyframes floatY{
+    0%,100%{transform:translateY(0)}
+    50%    {transform:translateY(-7px)}
+  }
+  .banner .bimg{animation:floatY 7s ease-in-out infinite;will-change:transform}
+  .figmv{animation:floatY 5.6s ease-in-out infinite;will-change:transform}
+  .figmv[data-float="1"]{animation-duration:6.4s;animation-delay:-2.2s}
+  /* Lift slightly on hover — a small hint that they are draggable. */
+  .banner .bimg:hover,.figmv:hover{animation-play-state:paused}
+
+  /* Anyone who has asked their OS for less motion gets none of it. */
+  @media (prefers-reduced-motion: reduce){
+    .banner .bimg,.figmv{animation:none}
+  }
+
   /* No font-size override here: the cqw clamp above already sizes the headline to
      its column. A fixed px value would fight it and overflow the one-line rule. */
   @media(max-width:1250px){
@@ -162,9 +184,9 @@
           loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"></model-viewer>
       </div>
       <div style="width:132px;display:flex;flex-direction:column;gap:10px">
-        <model-viewer src="/michael.glb" loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
+        <model-viewer class="figmv" data-float="0" src="/michael.glb" loading="eager" camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
           style="flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;border:0.5px solid var(--line)"></model-viewer>
-        <model-viewer src="/joseph.glb" loading="eager" autoplay camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
+        <model-viewer class="figmv" data-float="1" src="/joseph.glb" loading="eager" camera-controls disable-zoom interaction-prompt="none" exposure="1.1"
           style="flex:1;min-height:0;width:100%;background:#f5f4fa;border-radius:14px;border:0.5px solid var(--line)"></model-viewer>
       </div>
     </div>
@@ -287,6 +309,7 @@
     if (prompt === "/lena-page") { window.location.href = "/lena.html"; return; }
     if (/\blena\b/i.test(prompt)) { window.location.href = "/agent.html?a=lena"; return; }
     if (/\bvadim-agent\b/i.test(prompt)) { window.location.href = "/agent.html?a=vadim"; return; }
+    if (/\b(analyst|market[- ]analyst|market check)\b/i.test(prompt)) { window.location.href = "/agent.html?a=analyst"; return; }
     if (prompt === "/interview") { window.location.href = "/interview.html"; return; }
     const am = prompt.match(/\b(devops|dba|qa)-agent\b/);
     if (am) { window.location.href = "/agent.html?a=" + am[1] + "-agent"; return; }
@@ -432,6 +455,56 @@
     else if (event === "done"){ /* completion handled in runBuild (QA vs build) */ }
     else if (event === "error"){ line("[agent error] " + d.message, "err"); setStatus("error","err"); }
   }
+</script>
+
+<script>
+// ── Hero motion ─────────────────────────────────────────────────────────────
+// The GLBs have no animation clips, so we animate the CAMERA instead: a slow
+// sine sway around the model. It reads as the figure turning gently, costs one
+// property write per frame, and needs nothing baked into the asset.
+//
+// Each viewer gets its own phase and period so they never move in lockstep.
+(function heroMotion(){
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const views = Array.from(document.querySelectorAll("#hero model-viewer"));
+  if (!views.length) return;
+
+  const cfg = views.map((mv, i) => ({
+    mv,
+    base: 0,                  // degrees — straight on
+    amp: i === 0 ? 16 : 11,   // the banner gets a wider sweep than the small cards
+    period: 9000 + i * 1700,  // ms per full cycle, deliberately not multiples
+    phase: i * 2.1,
+    held: false,              // true while the user is dragging this one
+  }));
+
+  // While someone is dragging, get out of the way — otherwise our writes fight
+  // their mouse. Resume a couple of seconds after they let go.
+  for (const c of cfg) {
+    let timer;
+    c.mv.addEventListener("pointerdown", () => { c.held = true; clearTimeout(timer); });
+    c.mv.addEventListener("pointerup",   () => { timer = setTimeout(() => { c.held = false; }, 2500); });
+    c.mv.addEventListener("pointercancel", () => { timer = setTimeout(() => { c.held = false; }, 2500); });
+  }
+
+  let raf = null;
+  function frame(t){
+    for (const c of cfg) {
+      if (c.held) continue;
+      const theta = c.base + Math.sin(t / c.period * Math.PI * 2 + c.phase) * c.amp;
+      c.mv.cameraOrbit = theta.toFixed(2) + "deg 82deg auto";
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start(){ if (!raf && !reduce.matches) raf = requestAnimationFrame(frame); }
+  function stop(){ if (raf) { cancelAnimationFrame(raf); raf = null; } }
+
+  // Do not burn a rAF loop on a tab nobody is looking at.
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+  reduce.addEventListener("change", () => (reduce.matches ? stop() : start()));
+  start();
+})();
 </script>
 </body>
 </html>
