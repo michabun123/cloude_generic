@@ -685,6 +685,37 @@ async function mailer() {
   });
 }
 
+// Gmail does NOT reliably file SMTP-sent mail into Sent for this account — the
+// send-path test on 2026-08-07 was delivered to the inbox but left no copy in
+// Sent. So we put it there ourselves over IMAP.
+//
+// The message is compiled ONCE to raw MIME and the same bytes are both sent and
+// appended, so the Sent copy carries the same Message-ID as the delivered mail
+// and threads correctly. Failing to append is logged but never fails the send —
+// the mail has already gone; losing the archive copy must not report an error
+// for a message the recipient received.
+async function appendToSent(raw) {
+  const { user, pass } = mailCfg();
+  const { ImapFlow } = await import("imapflow");
+  const client = new ImapFlow({
+    host: "imap.gmail.com", port: 993, secure: true,
+    auth: { user, pass }, logger: false,
+  });
+  await client.connect();
+  try {
+    // Gmail localises this mailbox name, so resolve it by its special-use flag
+    // (\Sent) and only fall back to the English name.
+    let box = "[Gmail]/Sent Mail";
+    for (const m of await client.list()) {
+      if (m.specialUse === "\\Sent") { box = m.path; break; }
+    }
+    await client.append(box, raw, ["\\Seen"]);
+    return box;
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}
+
 // Is mail configured? Optionally prove the credentials with a real SMTP login
 // (?verify=1) — verify() authenticates without sending anything.
 app.get("/mail/status", async (req, res) => {
@@ -774,18 +805,34 @@ app.post("/mail/send", express.json({ limit: "30mb" }), async (req, res) => {
     }
     const html = `<div style="font:14px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:#1d2b2f">`
       + esc(body).replace(/\r?\n/g, "<br>") + `</div>` + sigHtml();
-    const t = await mailer();
-    const info = await t.sendMail({
+    // Compile once to raw MIME so SMTP and the Sent copy are byte-identical.
+    const { default: MailComposer } = await import("nodemailer/lib/mail-composer/index.js");
+    const mailOpts = {
       from: mailCfg().from, to, subject,
       text: body + sigText(), html, replyTo: mailCfg().user,
       ...(attachments.length ? { attachments } : {}),
-    });
+    };
+    const raw = await new Promise((resolve, reject) =>
+      new MailComposer(mailOpts).compile().build((err, msg) => err ? reject(err) : resolve(msg)));
+
+    const t = await mailer();
+    const info = await t.sendMail({ raw, envelope: { from: mailCfg().user, to } });
     const att = attachments.length
       ? ` + ${attachments.length} attachment(s): ${attachments.map(a => a.filename).join(", ")}`
       : "";
     console.log(`[mail] sent to ${to}${att} — ${info.messageId}`);
+
+    // Archive to Sent. Never fails the request — the mail is already delivered.
+    let sentCopy = null;
+    try {
+      sentCopy = await appendToSent(raw);
+      console.log(`[mail] archived to ${sentCopy}`);
+    } catch (e) {
+      console.error(`[mail] Sent-copy append failed (mail WAS sent): ${e.message}`);
+    }
+
     res.json({
-      ok: true, messageId: info.messageId, to,
+      ok: true, messageId: info.messageId, to, sentCopy,
       attachments: attachments.map(a => a.filename),
     });
   } catch (e) {

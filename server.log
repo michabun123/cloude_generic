@@ -4,3 +4,5 @@ loaded 3 vars from mail-env.ps1
 generic-agent-web  →  http://localhost:5178
 workspace          →  C:\claude\generic\workspace
 skills             →  C:\Users\micha\.claude\skills
+[mail] sent to michaelbu@mnjlabs.com — <77b8c229-63f0-ffc3-854d-46aec9d36968@mnjlabs.com>
+[mail] archived to [Gmail]/Sent Mail
