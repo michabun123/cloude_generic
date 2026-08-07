@@ -337,6 +337,76 @@ const TEAM = {
 
 const WIP = [
   {
+    name:'Bearing', tagline:'Medical Access Intelligence Engine — evidence → access → coverage → change',
+    ac:'#0f766e', bg:'rgba(15,118,110,.14)', icon:'pulse',
+    stage:'PROTOTYPE · PRE-BUILD', pct:15,
+    what:'Tells a patient whether a treatment is <b>approved, available and covered where they live</b> — and notifies them when that answer changes. Deliberately <b>not</b> another medical literature search engine: functions 1–3 and 7 are integrated from existing sources, and the product is the layer nobody builds — <b>availability, coverage and change monitoring</b>. Validated against the market on 06.08.2026: no player joins evidence to jurisdiction-level access. Data feasibility proven on real PBS data on 07.08.2026.',
+    verticals:['Oncology','Patient access','Australia first, Israel second'],
+    stack:['Java 21 + Spring Boot 3 (core)','Python 3.12 (ingestion)','PostgreSQL 16 + Flyway','Next.js + TypeScript','Meilisearch / Typesense','Flutter (mobile, later)','Claude API (extraction)'],
+    layers:[
+      ['Market validation — gap confirmed, 3 of 8 functions unserved','done'],
+      ['Hypothesis check — no system joins evidence to access','done'],
+      ['Data feasibility gate — 1,061 PBS oncology items, 100% field completeness','done'],
+      ['Change detection proven — 14 material events July→August','done'],
+      ['Source register — 30 sources, cost and licence status','done'],
+      ['UI prototype — 5 screens, real PBS data','done'],
+      ['Name + brand direction (Bearing)','done'],
+      ['PBS API subscription key','next'],
+      ['Named oncology reviewer (binding constraint)','next'],
+      ['Patent FTO review — US 11,887,738','next'],
+      ['Domain model: source_fetch → fact_version → change_event → review','todo'],
+      ['Spring Boot core + Flyway schema','todo'],
+      ['Python ingestion (batch) against PBS','todo'],
+      ['Next.js app — 16 screens','todo'],
+      ['Clinician summary + secure share links','todo'],
+    ],
+    links:[
+      ['Prototype · My cabinet','file:///C:/myPrograms/mnjlabs/bearing/prototype/cabinet.html','eye'],
+      ['Prototype · Public status page','file:///C:/myPrograms/mnjlabs/bearing/prototype/status.html','browser'],
+      ['Prototype · Search + facets','file:///C:/myPrograms/mnjlabs/bearing/prototype/search.html','table'],
+      ['Prototype · Clinician summary','file:///C:/myPrograms/mnjlabs/bearing/prototype/summary.html','note'],
+      ['Prototype · Profile + history','file:///C:/myPrograms/mnjlabs/bearing/prototype/profile.html','clipboard'],
+    ],
+    paths:['c:\\claude\\generic\\public\\bearing','c:\\claude\\generic\\docs'],
+    agent:'naum',
+
+    local:{
+      start:[
+        ['1 · Prototype','Already served by the Command Center — file:///C:/myPrograms/mnjlabs/bearing/prototype/cabinet.html'],
+        ['2 · Proof-of-data','PBS CSV bundle parsed: 34 tables, 1,061 oncology items (ATC L01/L02)'],
+        ['3 · Next','Scaffold the real project at c:\\myPrograms\\mnjlabs\\frontend\\bearing'],
+      ],
+      endpoints:[
+        ['My cabinet','file:///C:/myPrograms/mnjlabs/bearing/prototype/cabinet.html'],
+        ['Public status page','file:///C:/myPrograms/mnjlabs/bearing/prototype/status.html'],
+        ['Search + facets','file:///C:/myPrograms/mnjlabs/bearing/prototype/search.html'],
+        ['Clinician summary','file:///C:/myPrograms/mnjlabs/bearing/prototype/summary.html'],
+        ['Profile + version history','file:///C:/myPrograms/mnjlabs/bearing/prototype/profile.html'],
+      ],
+      db:{
+        engine:'None yet — prototype is static HTML with real data baked in',
+        rows:[
+          ['Planned','PostgreSQL 16 + Flyway'],
+          ['Core tables','source · source_fetch · fact_version · change_event · review · profile_version · notification'],
+          ['Key rule','facts and profiles are append-only — nothing is overwritten, or the audit trail becomes a lie'],
+          ['Search','Meilisearch/Typesense index is a projection, rebuildable from Postgres, never a source of truth'],
+        ],
+        note:'Data source verified: PBS publishes a full monthly CSV bundle plus a keyed REST API. Field completeness 100% on all critical fields; 0% manual work required. robots.txt disallows the ZIP, so production must use the registered API.'
+      }
+    },
+
+    cloud:{
+      env:'Not deployed — prototype only',
+      rows:[
+        ['Blocking (organisational, not technical)','PBS API key · named oncology reviewer · patent FTO'],
+        ['First jurisdiction','Australia — official API, monthly cadence, 14 change events/month to debug against'],
+        ['Second jurisdiction','Israel — undocumented JSON API found and verified; legal status of automated use unconfirmed'],
+        ['Recurring data cost','$0 — every P0 source is free and official'],
+        ['Dominant cost line','Medical reviewer, est. $15–25k/year — 50–100× everything else'],
+      ]
+    }
+  },
+  {
     name:'shortlink', tagline:'Node.js + TypeScript reference service', ac:'#639922', bg:'rgba(99,153,34,.14)', icon:'link',
     stage:'INTERVIEW PREP', pct:35,
     what:'A URL shortener built as a <b>teaching service</b> for the Node/TS interview track. Tiny domain, but a deliberate ladder from trivial to hard: in-memory today, then persistence, caching, rate limiting, analytics, streaming and worker threads. Layered exactly like the Spring Boot services so the architecture transfers.',
