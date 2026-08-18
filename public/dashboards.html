@@ -230,6 +230,22 @@
   .itile.open .idet{display:block}
   .iwarn{margin-top:10px;font-size:10.5px;color:#FFC168;background:rgba(255,193,104,.1);border-left:2px solid #FFC168;
     border-radius:0 7px 7px 0;padding:7px 9px;line-height:1.5}
+
+/* Cloud DB connection how-to — a procedure, not another key/value list, so it
+   is set apart from the fact rows above it. */
+.dbconn{margin:16px 0 4px;padding:14px 16px 12px;border:1px solid var(--line,#e3e9ed);
+        border-left:3px solid #0f766e;border-radius:0 10px 10px 0;
+        background:rgba(15,118,110,.05)}
+.dbconn-t{font-weight:600;color:var(--ink,#0f2a33);font-size:13.5px;
+          display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.dbconn-t svg{width:15px;height:15px}
+.dbconn-why{font-size:12.4px;color:var(--muted,#6b7c85);margin:0 0 11px;line-height:1.55}
+.dbstep{display:flex;gap:10px;margin-bottom:7px;font-size:12.6px;line-height:1.55}
+.dbstep-n{flex:0 0 128px;font-weight:600;color:#0f766e}
+.dbstep-b{flex:1;color:var(--ink2,#3c5560)}
+.dbstep-b code,.dbconn code{background:rgba(15,42,51,.06);padding:1px 5px;border-radius:4px;
+                            font-size:11.8px}
+.dbconn-facts{margin-top:11px;padding-top:9px;border-top:1px solid var(--line,#e3e9ed)}
 </style>
 </head>
 <body>
@@ -337,79 +353,101 @@ const TEAM = {
 
 const WIP = [
   {
-    name:'Bearing', tagline:'Medical Access Intelligence Engine — evidence → access → coverage → change',
+    name:'Bearing', tagline:'Medical Access Intelligence Engine - evidence to access to coverage to change',
     ac:'#0f766e', bg:'rgba(15,118,110,.14)', icon:'pulse',
-    stage:'DEPLOYED · PRIVATE PREVIEW', pct:55,
-    what:'Tells a patient whether a treatment is <b>approved, available and covered where they live</b> — and notifies them when that answer changes. Deliberately <b>not</b> another medical literature search engine: the product is the layer nobody builds — <b>availability, coverage and change monitoring</b>. Validated against the market on 06.08.2026: no player joins evidence to jurisdiction-level access. Data feasibility proven on real PBS data on 07.08.2026. <b>Running end to end on AWS since 08.08.2026</b>, behind a shared-password gate, on sample PBS data.',
+    stage:'LIVE &middot; HTTPS &middot; PRIVATE PREVIEW', pct:72,
+    what:'Tells a patient whether a treatment is <b>approved, available and covered where they live</b> &mdash; and notifies them when that answer changes. Deliberately <b>not</b> another medical literature search engine: the product is the layer nobody builds &mdash; <b>availability, coverage and change monitoring</b>. Live on HTTPS at <b>bearing.mnjlabs.com</b> with per-account sign-in, real PBS data (64 listings / 25 drugs), web push, clinician share links, and an AI layer that reads register restrictions into structured criteria. Governing rule: <b>AI reads, a human approves, plain code decides</b> &mdash; the register is quoted verbatim, never paraphrased.',
     verticals:['Oncology','Patient access','Australia first, Israel second'],
-    stack:['Kotlin + Spring Boot 3.4 (core)','Flutter 3.44 — web, Android, iOS','PostgreSQL 18 + Flyway','AWS ECS Fargate + ALB','RDS + S3 (SSE, private)','Python 3.12 (PBS ingestion)'],
+    stack:['Kotlin + Spring Boot 3.4 (core)','Flutter 3.44 - web, Android, iOS','PostgreSQL 18 + Flyway V1-V18','AWS ECS Fargate + ALB + ACM','RDS + S3 (SSE, private)','Claude Opus 5 (structured extraction)','Web Push (VAPID)'],
     layers:[
-      ['Market validation — gap confirmed, 3 of 8 functions unserved','done'],
-      ['Hypothesis check — no system joins evidence to access','done'],
-      ['Data feasibility gate — 1,061 PBS oncology items, 100% field completeness','done'],
-      ['Change detection proven — 14 material events July→August','done'],
-      ['Source register — 30 sources, cost and licence status','done'],
-      ['Patent FTO review — US 11,887,738 cleared for Australia','done'],
-      ['PBS API subscription key obtained + connector at 96.7% extraction','done'],
-      ['Domain model: source_fetch → fact_version → change_event (append-only)','done'],
-      ['Kotlin core + Flyway V1–V4, cabinet / profile / documents APIs','done'],
-      ['Flutter app — landing, auth, cabinet, summary, profile, documents','done'],
-      ['Document upload — type allow-list, SHA-256, S3 with encryption at rest','done'],
-      ['Deployed to AWS behind a shared-password gate','done'],
-      ['Original vector illustrations on the landing page','done'],
-      ['Per-patient authentication — the gate is NOT authorisation','next'],
-      ['HTTPS + custom domain (Route53 + ACM)','next'],
-      ['Define “material change” — still the core undefined business rule','next'],
-      ['Fix Pembrolizumab matcher false negative','next'],
-      ['Full PBS ingest wired into the core (no ingest endpoint yet)','todo'],
+      ['Market validation, patent FTO, data feasibility - all cleared','done'],
+      ['Domain model: source_fetch to fact_version to change_event (append-only)','done'],
+      ['Kotlin core + Flutter app - cabinet, profile, documents, summary','done'],
+      ['Per-account authentication + GDPR consent and erasure','done'],
+      ['HTTPS + custom domain - bearing.mnjlabs.com (Route53 + ACM)','done'],
+      ['Full PBS ingest wired into the core - 64 listings, 25 drugs','done'],
+      ['Clinician share links - tokenised, revocable, noindex','done'],
+      ['Web Push (VAPID) - desktop, Android, iOS 16.4+ via PWA','done'],
+      ['AI criteria extraction - 9 requirements the regex missed, 13 exclusions it could not express','done'],
+      ['Criteria review console - human gate before anything reaches a patient','done'],
+      ['Register analytics - what the register demands, both directions','done'],
+      ['<b>Review the 57 pending criteria</b> - unblocks the EGFR exclusion fix','next'],
+      ['Define "material change" - still the core undefined business rule','next'],
+      ['Email alerts - detection stores everything, sending awaits the rule','next'],
+      ['Scheduled register refresh (currently an admin button)','next'],
+      ['Retire the regex biomarker column once criteria cover the register','todo'],
+      ['Public, crawlable drug pages (SEO - nothing is indexable today)','todo'],
+      ['Second jurisdiction - NHS/NICE or Sal Habriut','todo'],
       ['Named oncology reviewer (binding constraint)','todo'],
-      ['Clinician summary + secure share links','todo'],
     ],
     links:[
-      ['Live preview (password-gated)','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com:8080/','browser'],
-      ['Prototype · My cabinet','file:///C:/myPrograms/mnjlabs/bearing/prototype/cabinet.html','eye'],
-      ['Prototype · Public status page','file:///C:/myPrograms/mnjlabs/bearing/prototype/status.html','browser'],
-      ['Prototype · Search + facets','file:///C:/myPrograms/mnjlabs/bearing/prototype/search.html','table'],
-      ['Prototype · Clinician summary','file:///C:/myPrograms/mnjlabs/bearing/prototype/summary.html','note'],
+      ['Live app (HTTPS)','https://bearing.mnjlabs.com/','browser'],
+      ['Team tools - admin index','https://bearing.mnjlabs.com/admin','settings'],
+      ['Criteria review console','https://bearing.mnjlabs.com/api/v1/admin/review','note'],
+      ['Register analytics','https://bearing.mnjlabs.com/api/v1/admin/analytics','table'],
+      ['Swagger / API reference','https://bearing.mnjlabs.com/docs','table'],
+      ['Health','https://bearing.mnjlabs.com/actuator/health','pulse'],
+      ['GitHub','https://github.com/michabun123/bearing','link'],
     ],
-    paths:['c:\myPrograms\mnjlabs\bearing','c:\claude\generic\docs'],
+    paths:['c:\\myPrograms\\mnjlabs\\bearing','c:\\claude\\generic\\docs'],
     agent:'naum',
 
     local:{
       start:[
-        ['1 · Backend','Android Studio → run <b>Bearing backend (8095)</b>, or core\run-local.bat — needs local PostgreSQL'],
-        ['2 · App','Android Studio → run <b>Bearing app (Chrome, live API)</b>. Open the folder <b>bearing\app</b>, not bearing'],
-        ['3 · Health','http://localhost:8095/actuator/health should report UP before the app is started'],
+        ['1 &middot; Backend','Android Studio &rarr; run <b>Bearing backend (8095)</b>, or core\\run-local.bat - needs local PostgreSQL'],
+        ['2 &middot; App','Android Studio &rarr; run <b>Bearing app (Chrome, live API)</b>. Open the folder <b>bearing\\app</b>, not bearing'],
+        ['3 &middot; Health','http://localhost:8095/actuator/health should report UP before the app is started'],
+        ['&#9888; Web build','Always <code>flutter build web --release --base-href=/ --dart-define=API_BASE=</code>. Without the empty API_BASE the bundle bakes in <b>localhost:8095</b> and the deployed app cannot sign anybody in.'],
       ],
       endpoints:[
         ['Cabinet API','http://localhost:8095/api/v1/patients/1/cabinet'],
-        ['Profile (POST = new version)','http://localhost:8095/api/v1/patients/1/profile'],
-        ['Documents','http://localhost:8095/api/v1/patients/1/documents'],
+        ['Register search','http://localhost:8095/api/v1/register/search?q='],
+        ['Criteria review (team only)','http://localhost:8095/api/v1/admin/review'],
         ['Swagger','http://localhost:8095/docs'],
         ['Health','http://localhost:8095/actuator/health'],
       ],
       db:{
-        engine:'PostgreSQL 18 + Flyway (V1–V4 applied)',
+        engine:'PostgreSQL 18 + Flyway (V1-V18 applied)',
         rows:[
-          ['Core tables','source · source_fetch · intervention · fact_version · change_event · patient · profile_version · patient_document'],
-          ['Key rule','facts and profiles are append-only — nothing is overwritten, or the audit trail becomes a lie'],
-          ['Seed','V2 generated from a real PBS extract — 9 real drugs, 4 access states'],
-          ['Documents','row holds a pointer + provenance only; bytes live in object storage'],
+          ['Core tables','source &middot; source_fetch &middot; intervention &middot; fact_version &middot; change_event &middot; patient &middot; profile_version &middot; patient_document &middot; account &middot; fact_criterion &middot; patient_alert &middot; push_subscription'],
+          ['Key rule','facts and profiles are append-only - nothing is overwritten, or the audit trail becomes a lie'],
+          ['fact_criterion','one row per stated criterion, REQUIRED or EXCLUDED, each citing its source sentence. Only <b>verdict = APPROVED</b> rows affect a patient.'],
+          ['Demo accounts','michael@mnjlabs.com / bearing-mich-01 &middot; naum@mnjlabs.com / bearing-naum-02 &middot; demo@mnjlabs.com / bearing-demo-04 (sample data only)'],
         ],
-        note:'PBS API connector reaches 96.7% condition extraction (119/123). robots.txt disallows the ZIP, so automation uses the registered API. The PBS copyright notice must travel with any redistributed data.'
+        note:'PBS API connector reaches 96.7% condition extraction. robots.txt disallows the ZIP, so automation uses the registered API. The PBS copyright notice must travel with any redistributed data.'
       }
     },
 
     cloud:{
-      env:'AWS us-east-1 · account 876762733422 · ECS Fargate on cluster mnjlabs',
+      env:'AWS us-east-1 &middot; account 876762733422 &middot; ECS Fargate on cluster mnjlabs &middot; service bearing-core',
       rows:[
-        ['Live URL','http://mnjlabs-alb-1240948101.us-east-1.elb.amazonaws.com:8080/ — user <b>bearing</b>, password in Secrets Manager (bearing/gate-password)'],
-        ['Compute','one container serves both the Flutter UI and the API — same origin, one gate, no CORS'],
-        ['Data','RDS bearing-pg (db.t4g.micro, encrypted, not public) · S3 bearing-documents-876762733422 (public access blocked, SSE, versioned)'],
-        ['Running cost','~$25–30/month, dominated by RDS — cluster and ALB already existed'],
-        ['<b>Not safe for real patient data</b>','plain HTTP (no domain → no certificate) and the gate is not per-patient authorisation'],
-        ['Dominant future cost line','Medical reviewer, est. $15–25k/year — 50–100× everything else'],
-      ]
+        ['Live URL','<b>https://bearing.mnjlabs.com</b> - per-account sign-in (no more shared gate password)'],
+        ['Team tools','https://bearing.mnjlabs.com/admin - review + analytics, visible only to is_demo accounts'],
+        ['Compute','one container serves both the Flutter UI and the API - same origin, one gate, no CORS. ALB idle timeout is 60s: long admin jobs must be batched or they 504.'],
+        ['Data','RDS <b>bearing-pg</b> (db.t4g.micro, encrypted, <b>not publicly accessible</b>) &middot; S3 bearing-documents-876762733422 (public access blocked, SSE, versioned)'],
+        ['Secrets','Secrets Manager: bearing/db-password &middot; bearing/gate-password &middot; bearing/vapid-private &middot; bearing/anthropic-api-key. The ECS execution role is scoped to those four ARNs, never secretsmanager:*'],
+        ['Deploy','mvn package &rarr; docker build/push to ECR mnjlabs/bearing-core &rarr; register task def &rarr; ecs update-service. Flyway migrates on boot.'],
+        ['Running cost','~$25-30/month, dominated by RDS - cluster and ALB already existed. AI extraction is ~$0.60 per full register pass.'],
+        ['Dominant future cost line','Medical reviewer, est. $15-25k/year - 50-100x everything else'],
+      ],
+      dbconnect:{
+        title:'Connecting to the AWS database from your machine',
+        why:'RDS is <b>not publicly accessible</b> - it accepts connections only from the app and from a bastion, and the bastion has no inbound ports open at all. You reach it through AWS Systems Manager, so there is no IP allowlist to maintain and nothing left exposed.',
+        steps:[
+          ['1 &middot; Prerequisites','AWS CLI configured for account 876762733422, plus the <b>Session Manager plugin</b> (C:\\Program Files\\Amazon\\SessionManagerPlugin). Install from the AWS docs if missing.'],
+          ['2 &middot; Open the tunnel','<code>cd c:\\myPrograms\\mnjlabs\\bearing\\scripts</code> then <code>.\\db-tunnel.ps1</code>. Leave that window open - closing it closes the tunnel. It starts the bastion automatically if it is stopped (it is kept stopped when unused: costs nothing, and a server that is off cannot be a way in).'],
+          ['3 &middot; Get the password','<code>.\\db-tunnel.ps1 -ShowPassword</code> - it reads Secrets Manager and prints it, so the password is never written to a file or a project setting.'],
+          ['4 &middot; Connect DataGrip','Host <b>localhost</b> &middot; Port <b>15432</b> &middot; Database <b>bearing</b> &middot; User <b>bearing</b> &middot; password from step 3. SSL can be off - the tunnel is already encrypted.'],
+          ['5 &middot; Or straight into psql','<code>.\\db-tunnel.ps1 -Psql</code> opens the tunnel and drops you into a psql session in one step.'],
+        ],
+        facts:[
+          ['Bastion instance','i-065f25d663ac911a8 (bearing-bastion), us-east-1 - stopped when unused'],
+          ['RDS endpoint','bearing-pg.ccn2momooqg6.us-east-1.rds.amazonaws.com:5432 (private only)'],
+          ['Local port','15432 - override with <code>-LocalPort</code> if it clashes'],
+          ['Secret','bearing/db-password'],
+          ['Useful check','<code>SELECT count(*) FROM fact_criterion WHERE verdict IS NULL;</code> - how much review queue is left'],
+        ]
+      }
     }
   },
   {
@@ -827,6 +865,15 @@ function wipCard(w){
       ${w.cloud.rows.map(r=>`<div class="kv"><span class="kk">${r[0]}</span>${/^https?:/.test(r[1])
         ? `<a class="vv" href="${r[1]}" target="_blank">${r[1]}</a>`
         : `<code class="vv mono" onclick="cp(this)" title="click to copy">${r[1]}</code>`}</div>`).join('')}` : ''}
+    ${w.cloud && w.cloud.dbconnect ? `
+      <div class="dbconn">
+        <div class="dbconn-t">${ico('database')} ${w.cloud.dbconnect.title}</div>
+        <p class="dbconn-why">${w.cloud.dbconnect.why}</p>
+        ${w.cloud.dbconnect.steps.map(st=>`<div class="dbstep"><span class="dbstep-n">${st[0]}</span><span class="dbstep-b">${st[1]}</span></div>`).join('')}
+        <div class="dbconn-facts">
+          ${w.cloud.dbconnect.facts.map(f=>`<div class="kv"><span class="kk">${f[0]}</span><code class="vv mono" onclick="cp(this)" title="click to copy">${f[1]}</code></div>`).join('')}
+        </div>
+      </div>` : ''}
     <div style="margin:16px 0 7px" class="k">Extra requirements → send to the team</div>
     <textarea class="wreq" id="req-${id}" placeholder="e.g. add a 'reject whole delivery' action; support German + English; export monthly CSV…"></textarea>
     <div class="wattach">
