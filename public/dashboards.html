@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MN&J Labs — Command Center</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 <style>
   :root{
@@ -446,6 +449,92 @@ const WIP = [
           ['RDS endpoint','bearing-pg.ccn2momooqg6.us-east-1.rds.amazonaws.com:5432 (private only)'],
           ['Local port','15432 - override with <code>-LocalPort</code> if it clashes'],
           ['Secret','bearing/db-password'],
+          ['Useful check','<code>SELECT count(*) FROM fact_criterion WHERE verdict IS NULL;</code> - how much review queue is left'],
+        ]
+      }
+    }
+  },
+  {
+    name:'Aperta', tagline:'what is open and available to you - serious illness free, common illness paid',
+    ac:'#0F766E', bg:'rgba(15,118,110,.14)', icon:'eye',
+    stage:'LIVE &middot; HTTPS &middot; PRIVATE PREVIEW', pct:58,
+    what:'Bearing&rsquo;s successor, and the attempt to put a business model under it. Same engine &mdash; <b>is this treatment approved, available and paid for where you live, and has that answer changed</b> &mdash; but pointed at two markets at once. <b>Serious, terminal and rare illness stays free</b>, because charging a person for the news that a cancer drug exists is not a business we want. <b>Common illness &mdash; diabetes, hypertension, asthma, the fifteen conditions on the shortlist &mdash; is the paid side</b>, because those patients are numerous, they manage the same condition for decades, and their formulary changes every quarter. An <b>entrance</b> page sits between sign-in and the platform and asks which of the two you are, because that is the one thing the system cannot infer. Live at <b>aperta.mnjlabs.com</b>, sharing Bearing&rsquo;s AWS estate rather than doubling the bill.',
+    verticals:['Oncology + rare (free)','Common chronic disease (paid)','Australia first, Israel second'],
+    stack:['Java 21 + Spring Boot 3.4 (ported from Kotlin)','Flutter 3.44 - web, Android, iOS','PostgreSQL 18 + Flyway V1-V19','AWS ECS Fargate on the shared mnjlabs cluster','Own database on the shared RDS instance','Claude Opus 5 (structured extraction)'],
+    layers:[
+      ['Kotlin to Java port - parity proved against running Bearing, not assumed','done'],
+      ['Own credentials, own database, own secrets - nothing shared with Bearing but the hardware','done'],
+      ['Entrance page - the fork between the free side and the paid side','done'],
+      ['Common-illness preview - the 15 shortlisted conditions, sample answer, unpriced plans','done'],
+      ['Deployed to AWS - aperta.mnjlabs.com, ACM cert, own ALB rule','done'],
+      ['Its own identity - open-ring mark, no longer shipping Bearing&rsquo;s icon','done'],
+      ['<b>Data sources for common disease</b> - which registers, what they cost, what they allow','next'],
+      ['First common condition end to end - diabetes, then obesity','next'],
+      ['Pricing - the plans exist as a page and have no numbers on them','next'],
+      ['Payment and subscription - nothing is chargeable today','todo'],
+      ['Second jurisdiction - NHS/NICE or Sal Habriut','todo'],
+      ['Named clinical reviewer for the common-disease side','todo'],
+    ],
+    links:[
+      ['Live app (HTTPS)','https://aperta.mnjlabs.com/','browser'],
+      ['Swagger / API reference','https://aperta.mnjlabs.com/docs','table'],
+      ['Health','https://aperta.mnjlabs.com/actuator/health','pulse'],
+      ['GitHub','https://github.com/michabun123/aperta','link'],
+    ],
+    paths:['c:\\myPrograms\\mnjlabs\\aperta\\backend\\aperta','c:\\myPrograms\\mnjlabs\\aperta\\frontend\\aperta','c:\\myPrograms\\mnjlabs\\aperta\\docs'],
+    agent:'naum',
+
+    local:{
+      start:[
+        ['1 &middot; Backend','<code>backend\\aperta\\run-local.bat</code>, or run ApertaApplication from the IDE. Needs local PostgreSQL with a database and role both named <b>aperta</b>. Port <b>8096</b> - 8095 belongs to Bearing and the team app.'],
+        ['2 &middot; App','<code>cd frontend\\aperta</code> then <code>flutter run -d chrome --web-port 5179</code>. 5179 because 5178 clashes with the team application.'],
+        ['3 &middot; Health','http://localhost:8096/actuator/health should report UP before the app is started'],
+        ['&#9888; Serve the app from the backend','The Flutter bundle is copied into <b>backend\\aperta\\src\\main\\resources\\static</b> on purpose. Spring Security only gates those files when it sits in the path of them - serving the bundle from a separate static origin removes the sign-in page entirely, and did once.'],
+        ['&#9888; Web build','Always <code>flutter build web --release --dart-define=API_BASE=</code>. Without the empty API_BASE the bundle bakes in localhost:8096 and the deployed app cannot sign anybody in.'],
+      ],
+      endpoints:[
+        ['Cabinet API','http://localhost:8096/api/v1/patients/1/cabinet'],
+        ['Account','http://localhost:8096/api/v1/account/me'],
+        ['Criteria review (team only)','http://localhost:8096/api/v1/admin/review'],
+        ['Swagger','http://localhost:8096/docs'],
+        ['Health','http://localhost:8096/actuator/health'],
+      ],
+      db:{
+        engine:'PostgreSQL 18 + Flyway (V1-V19 applied)',
+        rows:[
+          ['Core tables','source &middot; source_fetch &middot; intervention &middot; fact_version &middot; change_event &middot; patient &middot; profile_version &middot; patient_document &middot; account &middot; fact_criterion &middot; rare_disease &middot; consent_record'],
+          ['Key rule','facts and profiles are append-only - nothing is overwritten, or the audit trail becomes a lie'],
+          ['Accounts','michael@mnjlabs.com / aperta-mich-01 &middot; guest@mnjlabs.com / aperta-guest-2026. Note the <b>aperta-</b> prefix: the bearing- passwords do not work here.'],
+        ],
+        note:'Tables must land in <b>public</b>, never a named schema. Aperta carries Bearing&rsquo;s oncology data as its starting point; the common-disease sources are the open question this project exists to answer.'
+      }
+    },
+
+    cloud:{
+      env:'AWS us-east-1 &middot; account 876762733422 &middot; ECS Fargate on cluster mnjlabs &middot; service aperta-core',
+      rows:[
+        ['Live URL','<b>https://aperta.mnjlabs.com</b> - shared sign-in gate in front of the whole preview'],
+        ['Compute','one container serves both the Flutter UI and the API - same origin, one gate, no CORS'],
+        ['Routing','shared <b>mnjlabs-alb</b>, HTTPS rule priority 6 on host aperta.mnjlabs.com &rarr; aperta-tg on port 8096'],
+        ['Data','its own database <b>aperta</b> on the existing <b>bearing-pg</b> RDS instance, owned by its own role - a separate instance would have doubled the cost for one small schema'],
+        ['Secrets','aperta/db-password &middot; aperta/gate-password, plus the shared Anthropic key. The execution role is scoped to aperta/* and that one ARN, never secretsmanager:*'],
+        ['&#9888; DNS is not in Route 53','This AWS account has <b>no hosted zone at all</b>. Every mnjlabs.com record lives at an external provider, so a new subdomain or an ACM validation record has to be added by hand. Do not go looking for a hosted zone.'],
+        ['Deploy','mvn package &rarr; docker build/push to ECR mnjlabs/aperta-core &rarr; register task def &rarr; ecs update-service. Flyway migrates on boot.'],
+        ['Running cost','a few dollars a month on top of Bearing - cluster, ALB and RDS instance are all shared'],
+      ],
+      dbconnect:{
+        title:'Connecting to the AWS database from your machine',
+        why:'Aperta&rsquo;s database sits on the same private RDS instance as Bearing&rsquo;s, reached through the same bastion over AWS Systems Manager. Nothing is publicly accessible and there is no IP allowlist to maintain.',
+        steps:[
+          ['1 &middot; Prerequisites','AWS CLI configured for account 876762733422, plus the <b>Session Manager plugin</b>.'],
+          ['2 &middot; Open the tunnel','<code>cd c:\\myPrograms\\mnjlabs\\bearing\\scripts</code> then <code>.\\db-tunnel.ps1</code> - same instance, so the same script. Leave the window open.'],
+          ['3 &middot; Get the password','Secrets Manager secret <b>aperta/db-password</b> (not bearing/db-password - different role, different database).'],
+          ['4 &middot; Connect DataGrip','Host <b>localhost</b> &middot; Port <b>15432</b> &middot; Database <b>aperta</b> &middot; User <b>aperta</b> &middot; password from step 3.'],
+        ],
+        facts:[
+          ['Bastion instance','i-065f25d663ac911a8 (bearing-bastion), us-east-1 - stopped when unused'],
+          ['RDS endpoint','bearing-pg.ccn2momooqg6.us-east-1.rds.amazonaws.com:5432 (private only)'],
+          ['Database / role','aperta / aperta - the master user is <b>bearing</b>, and it is not a superuser: creating a role there needs GRANT &lt;role&gt; TO bearing first'],
           ['Useful check','<code>SELECT count(*) FROM fact_criterion WHERE verdict IS NULL;</code> - how much review queue is left'],
         ]
       }
